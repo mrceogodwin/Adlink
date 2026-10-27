@@ -1,3 +1,4 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { neon } from '@neondatabase/serverless';
 
 const allowedPlatforms = new Set(['Instagram','TikTok','WhatsApp','Telegram','Website','Facebook','YouTube','Other']);
@@ -9,7 +10,7 @@ function json(body, status = 200) {
   });
 }
 
-export default async function handler(request) {
+async function handler(request) {
   if (request.method !== 'GET') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -52,3 +53,5 @@ export default async function handler(request) {
     return json({ error: 'Could not load marketplace listings.' }, 500);
   }
 }
+
+export default vercelHandler(handler);
