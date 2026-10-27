@@ -19,13 +19,9 @@ export default async function handler(request) {
     const sql = db();
     const rows = await sql`
       WITH new_profile AS (
-        INSERT INTO profiles (email, display_name, role, status)
-        VALUES (${email}, ${displayName}, ${role}, 'active')
+        INSERT INTO profiles (email, display_name, role, status, password_hash)
+        VALUES (${email}, ${displayName}, ${role}, 'active', ${passwordHash})
         RETURNING id, email, display_name, role, status
-      ), new_credential AS (
-        INSERT INTO auth_credentials (profile_id, password_hash)
-        SELECT id, ${passwordHash} FROM new_profile
-        RETURNING profile_id
       ), new_publisher AS (
         INSERT INTO publisher_profiles (profile_id, business_name, verification_status)
         SELECT id, ${displayName}, 'pending' FROM new_profile WHERE role = 'publisher'
@@ -35,7 +31,8 @@ export default async function handler(request) {
     `;
     const profile = rows[0];
     if (!profile) return json({ error: 'Could not create the account.' }, 500);
-    return json({ profile }, 201, { 'set-cookie': cookieHeader(createSession(profile), request) });
+    const token = await createSession(profile);
+    return json({ profile }, 201, { 'set-cookie': cookieHeader(token, request) });
   } catch (error) {
     if (error?.code === '23505') return json({ error: 'An account with this email already exists. Try logging in.' }, 409);
     console.error('Registration failed', { message: error?.message, code: error?.code });
