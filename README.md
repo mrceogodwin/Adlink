@@ -51,3 +51,6 @@ Import this repository into Vercel. The included `vercel.json` sets the Vite bui
 6. Campaign analytics, recommendations and admin operations
 
 Build in verified increments. Do not present sample inventory as real or mark integrations complete until configured and tested.
+
+
+CI build verification is configured in `.github/workflows/build.yml`.
