@@ -1,8 +1,9 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
 const platforms = new Set(['Instagram','TikTok','WhatsApp','Telegram','Website','Facebook','YouTube','Other']);
 
-export default async function handler(request) {
+async function handler(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
   if (auth.profile.role !== 'publisher') return json({ error: 'Only publisher accounts can manage placements.' }, 403);
@@ -44,3 +45,5 @@ export default async function handler(request) {
     return json({ error: 'Could not submit placement for review.' }, 500);
   }
 }
+
+export default vercelHandler(handler);
