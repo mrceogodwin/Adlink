@@ -2,9 +2,9 @@ import { db, json, requireSession } from '../lib/auth.js';
 
 export default async function handler(request) {
   if (request.method !== 'GET') return json({ error: 'Method not allowed.' }, 405, { allow: 'GET' });
-  const session = await requireSession(request);
-  if (session.error) return session.error;
-  const user = session.profile;
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const user = auth.profile;
   try {
     const sql = db();
     if (user.role === 'super_admin' || user.role === 'admin') {
