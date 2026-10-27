@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './styles.css';
 import './dashboard.css';
 
@@ -8,11 +8,14 @@ const menu = [
 function Mark(){return <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 13.5 13.5 8a7 7 0 0 1 9.9 0l2.2 2.2-4.2 4.2-2.2-2.2a1.1 1.1 0 0 0-1.5 0l-5.5 5.5a1.1 1.1 0 0 0 0 1.5l2.2 2.2-4.2 4.2L8 23.4a7 7 0 0 1 0-9.9Z" fill="currentColor"/><path d="m32 26.5-5.5 5.5a7 7 0 0 1-9.9 0l-2.2-2.2 4.2-4.2 2.2 2.2a1.1 1.1 0 0 0 1.5 0l5.5-5.5a1.1 1.1 0 0 0 0-1.5l-2.2-2.2 4.2-4.2 2.2 2.2a7 7 0 0 1 0 9.9Z" fill="currentColor"/><circle cx="31.5" cy="8.5" r="3.5" fill="#b7e66a"/></svg>}
 function Dashboard(){
  const [active,setActive]=useState('Overview');
+ const [auth,setAuth]=useState(null);
+ const [checking,setChecking]=useState(true);
+ useEffect(()=>{let alive=true;fetch('/api/auth/me',{credentials:'same-origin'}).then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error('Sign in required');if(alive){setAuth(data.profile);setRole(data.profile.role==='publisher'?'Publisher':'Advertiser');setChecking(false);}}).catch(()=>{if(alive)window.location.replace('/login?next=/dashboard');});return()=>{alive=false;};},[]);
  const [role,setRole]=useState('Advertiser');
  const [notice,setNotice]=useState('');
  const [authState,setAuthState]=useState('not-connected');
  const items=useMemo(()=>role==='Publisher'?menu.filter(([name])=>!['Saved placements','Billing'].includes(name)):menu,[role]);
- const message='This dashboard layout is ready, but account authentication and protected dashboard APIs are not connected yet. No sample account data is being shown as real.';
+ const message='Your account session is verified. Campaign, booking and payment data panels are being connected to protected workspace APIs.';
  return <div className="dashboard-shell">
   <aside className="dash-sidebar">
    <a className="dash-brand" href="/"><span className="dash-brand-mark"><Mark/></span><span>adlink</span></a>
@@ -22,10 +25,10 @@ function Dashboard(){
    <div className="dash-sidebar-bottom"><div className="help-card"><span>✳</span><strong>Need a hand?</strong><p>Get help setting up your Adlink workspace.</p><button onClick={()=>setNotice('Support will be connected with the authenticated account system.')}>Contact support ↗</button></div><a className="dash-back-home" href="/">← Back to marketplace</a></div>
   </aside>
   <main className="dash-main">
-   <header className="dash-topbar"><div className="dash-breadcrumb">Workspace <span>/</span> {active}</div><div className="dash-top-actions"><span className="dash-preview-pill"><i/> PREVIEW</span><button className="dash-icon-button" aria-label="Notifications" onClick={()=>setNotice('Notifications will appear here after account sign-in.')}>♧</button><button className="dash-profile-button" onClick={()=>setNotice('Profile settings require a signed-in account.')}><span>?</span><span className="profile-button-copy"><strong>Guest account</strong><small>Not signed in</small></span><b>⌄</b></button></div></header>
+   <header className="dash-topbar"><div className="dash-breadcrumb">Workspace <span>/</span> {active}</div><div className="dash-top-actions"><span className="dash-preview-pill"><i/> SIGNED IN</span><button className="dash-icon-button" aria-label="Notifications" onClick={()=>setNotice('Notifications are not connected yet.')}>♧</button><button className="dash-profile-button" onClick={async()=>{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});window.location.assign('/login');}}><span>{(auth?.display_name||'A').slice(0,1).toUpperCase()}</span><span className="profile-button-copy"><strong>{auth?.display_name||'Account'}</strong><small>{auth?.role||'User'}</small></span><b>↪</b></button></div></header>
    <section className="dash-content">
     <div className="dash-welcome"><div><div className="dash-eyebrow">YOUR ADLINK WORKSPACE</div><h1>{active==='Overview'?'Good things start with a plan.':active}</h1><p>Keep your advertising work organised in one place.</p></div><button className="dash-primary" onClick={()=>setNotice('Create campaign will become available after secure sign-in is connected.')}>＋ Create campaign</button></div>
-    <div className="dash-role-switch"><span>Preview workspace:</span><button className={role==='Advertiser'?'on':''} onClick={()=>{setRole('Advertiser');setActive('Overview')}}>Advertiser</button><button className={role==='Publisher'?'on':''} onClick={()=>{setRole('Publisher');setActive('Overview')}}>Publisher</button><span className="role-switch-note">Visual preview only · not an access control</span></div>
+    <div className="dash-role-switch"><span>Signed-in workspace:</span><strong>{auth?.display_name} · {auth?.role}</strong><span className="role-switch-note">Workspace role is assigned by the server.</span></div>
     <div className="dash-connection-banner"><span className="connection-symbol">!</span><div><strong>Secure account connection still required</strong><p>{message}</p></div><span className="connection-status">NOT CONNECTED</span></div>
     <div className="dash-stat-grid">{[['Campaigns','—','Campaign activity'],['Active bookings','—','Booking status'],['Total spend','—','Verified payments'],[role==='Publisher'?'Placement views':'Saved placements','—',role==='Publisher'?'Listing performance':'Your shortlist']].map(([label,value,sub])=><article className="dash-stat-card" key={label}><div className="dash-stat-head"><span>{label}</span><i>↗</i></div><strong>{value}</strong><small>{sub}</small></article>)}</div>
     <div className="dash-panels"><section className="dash-panel dash-activity-panel"><div className="dash-panel-head"><div><h2>{active==='Overview'?'Recent activity':active}</h2><p>Updates from your workspace will appear here.</p></div><button onClick={()=>setNotice('Activity history requires a verified account session.')}>View all ↗</button></div><div className="dash-empty-activity"><div className="empty-activity-icon">◷</div><strong>Your workspace is waiting for its first activity</strong><p>Once you sign in, your real campaigns, bookings and updates will be shown here.</p><button onClick={()=>setNotice('Secure sign-in is the next integration milestone.')}>Connect account ↗</button></div></section>
