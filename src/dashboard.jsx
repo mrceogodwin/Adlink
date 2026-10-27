@@ -9,6 +9,7 @@ function Mark(){return <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 1
 function Dashboard(){
  const [active,setActive]=useState('Overview');
  const [auth,setAuth]=useState(null);
+ const [dashboardData,setDashboardData]=useState(null);
  const [checking,setChecking]=useState(true);
  const [dashboardData,setDashboardData]=useState(null);
  const [stats,setStats]=useState(null);
