@@ -54,3 +54,20 @@ Build in verified increments. Do not present sample inventory as real or mark in
 
 
 CI build verification is configured in `.github/workflows/build.yml`.
+
+
+## Production backend foundation
+
+- PostgreSQL schema: `database/migrations/001_initial_schema.sql`
+- Public listings API: `api/listings.js` (only published placements from verified publishers)
+- Runtime dependency: `@neondatabase/serverless`
+- Environment template: `.env.example`
+
+### Required before live data is available
+
+1. Create or select a dedicated Adlink Neon project and apply the schema migration.
+2. Set the pooled Neon connection string as `DATABASE_URL` in Vercel Production and Preview environments.
+3. Connect an authentication provider and implement server-verified session checks before enabling mutations.
+4. Add payment provider credentials only after webhook signature verification and idempotency handling are implemented.
+
+The API deliberately returns HTTP 503 when `DATABASE_URL` is missing; it never silently substitutes demo data. The current homepage still has a clearly labelled sample-data catalog until the frontend is switched to database-backed listings and auth is connected.
