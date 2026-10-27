@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import Dashboard from './dashboard.jsx';
 
 const placements = [
   { id:1, name:'Naija Trends Daily', handle:'@naijatrendsdaily', type:'Instagram', category:'Entertainment', audience:'248K', reach:'82K', engagement:'6.8%', price:45000, badge:'Top performer', icon:'N', color:'coral', description:'Pop culture, celebrity news and what everyone is talking about.', tags:['Gen Z','Pop culture','Nigeria'] },
@@ -84,4 +85,4 @@ function App(){
     {notice&&<div role="status" className="toast"><span>✳</span>{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss notification">×</button></div>}
   </div>;
 }
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root')).render(window.location.pathname.startsWith('/dashboard') ? <Dashboard/> : <App/>);
