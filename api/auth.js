@@ -1,3 +1,4 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { json } from '../lib/auth.js';
 import login from '../lib/auth-routes/login.js';
 import register from '../lib/auth-routes/register.js';
@@ -8,10 +9,12 @@ import me from '../lib/auth-routes/me.js';
 // function limit. Existing /api/auth/<action> URLs are rewritten in vercel.json.
 const handlers = { login, register, logout, me };
 
-export default async function handler(request) {
+async function handler(request) {
   const url = new URL(request.url);
   const action = url.searchParams.get('action') || (request.method === 'GET' ? 'me' : '');
   const selected = handlers[action];
   if (!selected) return json({ error: 'Unknown authentication action.' }, 404);
   return selected(request);
 }
+
+export default vercelHandler(handler);
