@@ -2,14 +2,11 @@ import { db, json, requireSession } from '../lib/auth.js';
 
 export default async function handler(request) {
   if (request.method !== 'GET') return json({ error: 'Method not allowed.' }, 405, { allow: 'GET' });
-
   const session = await requireSession(request);
   if (session.error) return session.error;
-
+  const user = session.profile;
   try {
-    const user = session.profile;
     const sql = db();
-
     if (user.role === 'super_admin' || user.role === 'admin') {
       const rows = await sql`
         SELECT
@@ -22,7 +19,6 @@ export default async function handler(request) {
       `;
       return json({ user, role: 'admin', stats: rows[0] });
     }
-
     if (user.role === 'publisher') {
       const rows = await sql`
         SELECT pp.id AS publisher_id, pp.business_name, pp.verification_status,
@@ -34,7 +30,6 @@ export default async function handler(request) {
       `;
       return json({ user, role: 'publisher', stats: rows[0] || null });
     }
-
     const rows = await sql`
       SELECT
         (SELECT count(*)::int FROM campaigns c WHERE c.advertiser_id = ${user.id}) AS campaigns,
