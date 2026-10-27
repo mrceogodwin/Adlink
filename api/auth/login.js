@@ -3,7 +3,7 @@ import { db, json, checkSameOrigin, verifyPassword, createSession, cookieHeader 
 export default async function handler(request) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, { allow: 'POST' });
   if (!checkSameOrigin(request)) return json({ error: 'Cross-origin request rejected.' }, 403);
-  if (!process.env.SESSION_SECRET || !process.env.DATABASE_URL) return json({ error: 'Login is not configured yet.' }, 503);
+  if (!process.env.DATABASE_URL) return json({ error: 'Login is not configured yet.' }, 503);
   try {
     const body = await request.json();
     const email = String(body.email || '').trim().toLowerCase();
@@ -11,8 +11,8 @@ export default async function handler(request) {
     if (!email || !password || email.length > 254 || password.length > 200) return json({ error: 'Enter your email and password.' }, 400);
     const sql = db();
     const rows = await sql`
-      SELECT p.id, p.email, p.display_name, p.role, p.status, p.password_hash
-      FROM profiles p
+      SELECT p.id, p.email, p.display_name, p.role, p.status, c.password_hash
+      FROM profiles p JOIN auth_credentials c ON c.profile_id = p.id
       WHERE p.email = ${email} LIMIT 1
     `;
     const row = rows[0];
