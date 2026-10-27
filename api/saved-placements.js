@@ -1,6 +1,7 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
-export default async function handler(request) {
+async function handler(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
   if (auth.profile.role !== 'advertiser') return json({ error: 'Saved placements are available to advertiser accounts.' }, 403);
@@ -33,3 +34,5 @@ export default async function handler(request) {
     return json({ error: 'Could not update saved placements.' }, 500);
   }
 }
+
+export default vercelHandler(handler);
