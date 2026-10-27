@@ -12,7 +12,7 @@ export default async function handler(request) {
     const sql = db();
     const rows = await sql`
       SELECT p.id, p.email, p.display_name, p.role, p.status, c.password_hash
-      FROM profiles p JOIN auth_credentials c ON c.profile_id = p.id
+      FROM profiles p
       WHERE p.email = ${email} LIMIT 1
     `;
     const row = rows[0];
@@ -20,7 +20,8 @@ export default async function handler(request) {
     if (!row || !valid) return json({ error: 'Email or password is incorrect.' }, 401);
     if (row.status !== 'active') return json({ error: 'This account is not active. Contact Adlink support.' }, 403);
     const profile = { id: row.id, email: row.email, display_name: row.display_name, role: row.role, status: row.status };
-    return json({ profile }, 200, { 'set-cookie': cookieHeader(createSession(profile), request) });
+    const token = await createSession(profile);
+    return json({ profile }, 200, { 'set-cookie': cookieHeader(token, request) });
   } catch (error) {
     console.error('Login failed', { message: error?.message, code: error?.code });
     return json({ error: 'Login is temporarily unavailable.' }, 500);
