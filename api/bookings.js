@@ -1,6 +1,7 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
-export default async function handler(request) {
+async function handler(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
   const sql = db();
@@ -39,3 +40,5 @@ export default async function handler(request) {
     return json({ error: 'Could not request this booking.' }, 500);
   }
 }
+
+export default vercelHandler(handler);
