@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import './styles.css';
 import './dashboard.css';
 
@@ -38,4 +37,4 @@ function Dashboard(){
   {notice&&<div className="dash-toast" role="status">{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss">×</button></div>}
  </div>
 }
-createRoot(document.getElementById('root')).render(<Dashboard/>);
+export default Dashboard;
