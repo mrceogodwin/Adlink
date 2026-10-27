@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './dashboard.css';
 import './admin.css';
 
@@ -13,7 +13,10 @@ const queues = [
 ];
 export default function Admin(){
  const [active,setActive]=useState('Overview');
+ const [authState,setAuthState]=useState('checking');
+ useEffect(()=>{let alive=true;fetch('/api/auth/me',{credentials:'same-origin'}).then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error('Sign in required');if(data.profile?.role!=='super_admin')throw new Error('Owner access required');if(alive)setAuthState('authorized');}).catch(()=>{if(alive){setAuthState('denied');window.location.replace('/login?next=/admin');}});return()=>{alive=false;};},[]);
  const [notice,setNotice]=useState('');
+ if(authState!=='authorized') return <main className="auth-page"><div className="auth-card"><h1>Verifying owner access…</h1><p className="auth-subtitle">The private control room requires a server-verified super administrator session.</p></div></main>;
  return <div className="dashboard-shell admin-shell">
   <aside className="dash-sidebar">
    <a className="dash-brand" href="/"><span className="dash-brand-mark"><svg viewBox="0 0 40 40"><path d="M8 13.5 13.5 8a7 7 0 0 1 9.9 0l2.2 2.2-4.2 4.2-2.2-2.2a1.1 1.1 0 0 0-1.5 0l-5.5 5.5a1.1 1.1 0 0 0 0 1.5l2.2 2.2-4.2 4.2L8 23.4a7 7 0 0 1 0-9.9Z" fill="currentColor"/><path d="m32 26.5-5.5 5.5a7 7 0 0 1-9.9 0l-2.2-2.2 4.2-4.2 2.2 2.2a1.1 1.1 0 0 0 1.5 0l5.5-5.5a1.1 1.1 0 0 0 0-1.5l-2.2-2.2 4.2-4.2 2.2 2.2a7 7 0 0 1 0 9.9Z" fill="currentColor"/></svg></span><span>adlink</span></a>
