@@ -1,6 +1,7 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession } from '../lib/auth.js';
 
-export default async function handler(request) {
+async function handler(request) {
   if (request.method !== 'GET') return json({ error: 'Method not allowed.' }, 405, { allow: 'GET' });
   const auth = await requireSession(request, ['super_admin']);
   if (auth.error) return auth.error;
@@ -28,3 +29,5 @@ export default async function handler(request) {
     return json({ error: 'Could not load owner dashboard data.' }, 500);
   }
 }
+
+export default vercelHandler(handler);
