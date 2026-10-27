@@ -1,3 +1,4 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { neon } from '@neondatabase/serverless';
 
 function reply(body, status = 200) {
@@ -11,7 +12,7 @@ function reply(body, status = 200) {
   });
 }
 
-export default async function handler(request) {
+async function handler(request) {
   if (request.method !== 'GET') {
     return reply({ ok: false, error: 'Method not allowed' }, 405);
   }
@@ -59,3 +60,5 @@ export default async function handler(request) {
     }, 503);
   }
 }
+
+export default vercelHandler(handler);
