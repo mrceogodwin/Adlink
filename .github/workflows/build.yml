@@ -15,4 +15,6 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - run: for file in api/*.js lib/*.js lib/auth-routes/*.js; do node --check "$file"; done
+      - run: npm test
       - run: npm run build
