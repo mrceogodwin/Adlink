@@ -3,7 +3,7 @@ import { db, json, checkSameOrigin, hashPassword, createSession, cookieHeader } 
 export default async function handler(request) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, { allow: 'POST' });
   if (!checkSameOrigin(request)) return json({ error: 'Cross-origin request rejected.' }, 403);
-  if (!process.env.SESSION_SECRET || !process.env.DATABASE_URL) return json({ error: 'Account registration is not configured yet.' }, 503);
+  if (!process.env.DATABASE_URL) return json({ error: 'Account registration is not configured yet.' }, 503);
   try {
     const body = await request.json();
     const displayName = String(body.displayName || '').trim().slice(0, 100);
@@ -19,9 +19,13 @@ export default async function handler(request) {
     const sql = db();
     const rows = await sql`
       WITH new_profile AS (
-        INSERT INTO profiles (email, display_name, role, status, password_hash)
-        VALUES (${email}, ${displayName}, ${role}, 'active', ${passwordHash})
+        INSERT INTO profiles (email, display_name, role, status)
+        VALUES (${email}, ${displayName}, ${role}, 'active')
         RETURNING id, email, display_name, role, status
+      ), new_credential AS (
+        INSERT INTO auth_credentials (profile_id, password_hash)
+        SELECT id, ${passwordHash} FROM new_profile
+        RETURNING profile_id
       ), new_publisher AS (
         INSERT INTO publisher_profiles (profile_id, business_name, verification_status)
         SELECT id, ${displayName}, 'pending' FROM new_profile WHERE role = 'publisher'
