@@ -48,8 +48,8 @@ function App(){
   const [saved,setSaved] = useState([]);
   const [showAll,setShowAll] = useState(false);
   const [notice,setNotice] = useState('');
-  const [authOpen,setAuthOpen] = useState(false);
-  const [authMode,setAuthMode] = useState('login');
+  const [authOpen,setAuthOpen] = useState(()=>['/login','/register'].includes(window.location.pathname));
+  const [authMode,setAuthMode] = useState(()=>window.location.pathname==='/register'?'register':'login');
   const filtered = useMemo(()=>{
     let data = placementsData.filter(p => (channel==='All placements'||p.type===channel) && (category==='All categories'||p.category===category) && p.price<=maxBudget && (query===''||[p.name,p.handle,p.type,p.category,...p.tags].join(' ').toLowerCase().includes(query.toLowerCase())));
     if(sort==='Lowest price') data.sort((a,b)=>a.price-b.price);
@@ -62,7 +62,7 @@ function App(){
   const announce = text => {setNotice(text); window.setTimeout(()=>setNotice(''),3500);};
   return <div className="app-shell">
     <div className="announcement"><span className="announcement-dot"></span> Your next campaign starts with the right audience <span className="announcement-link">Explore the marketplace <span>↗</span></span></div>
-    <header className="site-header"><div className="header-inner"><Logo/><nav className="main-nav"><a className="active" href="#marketplace">Marketplace</a><a href="#how-it-works">How it works</a><a href="#for-publishers">For publishers</a></nav><div className="header-actions"><button className="btn btn-quiet" onClick={()=>window.location.assign('/login')}>Log in</button><button className="btn btn-dark" onClick={()=>window.location.assign('/register')}>Get started <span>↗</span></button><button className="mobile-menu" aria-label="Open menu" onClick={()=>announce('Use the links on this page to explore Adlink.')}>☰</button></div></div></header>
+    <header className="site-header"><div className="header-inner"><Logo/><nav className="main-nav"><a className="active" href="#marketplace">Marketplace</a><a href="#how-it-works">How it works</a><a href="#for-publishers">For publishers</a></nav><div className="header-actions"><button className="btn btn-quiet" onClick={()=>{setAuthMode('login');setAuthOpen(true);}}>Log in</button><button className="btn btn-dark" onClick={()=>{setAuthMode('register');setAuthOpen(true);}}>Get started <span>↗</span></button><button className="mobile-menu" aria-label="Open menu" onClick={()=>announce('Use the links on this page to explore Adlink.')}>☰</button></div></div></header>
     <main>
       <section className="hero">
         <div className="hero-copy"><div className="eyebrow"><span className="eyebrow-line"></span> AFRICA’S ADVERTISING MARKETPLACE</div><h1>Good ads find<br/>their <em>people.</em></h1><p className="hero-sub">One place to discover creators, communities and publishers that connect your brand to the people who matter.</p><div className="hero-cta"><a className="btn btn-dark btn-large" href="#marketplace">Explore placements <span>↘</span></a><button className="btn btn-outline btn-large" onClick={()=>document.getElementById('for-publishers')?.scrollIntoView({behavior:'smooth'})}>I’m a publisher <span>↗</span></button></div><div className="hero-proof"><div className="avatar-stack"><span>N</span><span>L</span><span>T</span><span>+</span></div><div><strong>Every audience has a place.</strong><small>Find your next opportunity on Adlink.</small></div></div></div>
