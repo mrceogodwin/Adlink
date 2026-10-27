@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import Dashboard from './dashboard.jsx';
 import Admin from './admin.jsx';
+import AuthDialog from './auth-dialog.jsx';
 import AuthPage from './auth.jsx';
 
 const placements = [
@@ -47,6 +48,8 @@ function App(){
   const [saved,setSaved] = useState([]);
   const [showAll,setShowAll] = useState(false);
   const [notice,setNotice] = useState('');
+  const [authOpen,setAuthOpen] = useState(false);
+  const [authMode,setAuthMode] = useState('login');
   const filtered = useMemo(()=>{
     let data = placementsData.filter(p => (channel==='All placements'||p.type===channel) && (category==='All categories'||p.category===category) && p.price<=maxBudget && (query===''||[p.name,p.handle,p.type,p.category,...p.tags].join(' ').toLowerCase().includes(query.toLowerCase())));
     if(sort==='Lowest price') data.sort((a,b)=>a.price-b.price);
@@ -84,6 +87,7 @@ function App(){
       <section className="bottom-note"><span className="bottom-star">✳</span><div><strong>Better connections. Better campaigns.</strong><p>Adlink brings advertisers and the publishers their audiences already trust into one marketplace.</p></div><a href="#marketplace">Find your next placement ↗</a></section>
     </main>
     <footer className="site-footer"><div className="footer-top"><Logo/><p>Find your people.<br/>Make your message matter.</p><div className="footer-links"><a href="#marketplace">Marketplace</a><a href="#how-it-works">How it works</a><a href="#for-publishers">For publishers</a></div><button className="back-top" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}>Back to top ↑</button></div><div className="footer-bottom"><span>© 2026 Adlink. Built for better connections.</span><span><i className="live-dot"></i> Early marketplace preview</span><span>Made for Africa ↗</span></div></footer>
+    {authOpen&&<AuthDialog initialMode={authMode} onClose={()=>setAuthOpen(false)}/>}
     {notice&&<div role="status" className="toast"><span>✳</span>{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss notification">×</button></div>}
   </div>;
 }
