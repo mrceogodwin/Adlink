@@ -1,9 +1,10 @@
+import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
 const objectives = new Set(['awareness','traffic','leads','sales','community','other']);
 const dateOrNull = value => value ? String(value).slice(0,10) : null;
 
-export default async function handler(request) {
+async function handler(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
   if (auth.profile.role !== 'advertiser') return json({ error: 'Only advertiser accounts can manage campaigns.' }, 403);
@@ -41,3 +42,5 @@ export default async function handler(request) {
     return json({ error: 'Could not create campaign. Please try again.' }, 500);
   }
 }
+
+export default vercelHandler(handler);
