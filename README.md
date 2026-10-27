@@ -1,1 +1,53 @@
 # Adlink
+
+**Find your audience. Make your message matter.**
+
+Adlink is an advertising marketplace concept connecting businesses with creators, social pages, WhatsApp and Telegram communities, and websites across Africa.
+
+## Current build
+
+The first frontend milestone is a responsive Vite + React marketplace preview featuring:
+
+- Responsive landing page and Adlink visual identity
+- Publisher placement cards and sample inventory
+- Search by publisher, platform, category, and tags
+- Platform and category filters
+- Maximum budget slider
+- Sorting by recommendation, price, audience, and engagement
+- Save/unsave placement interactions
+- Empty states, load-more, and feedback notices
+- Publisher onboarding call-to-action
+- Vercel build configuration
+
+**Important:** the displayed publisher names, audience figures, reach, engagement, and prices are sample data used to develop the interface. They are not verified offers. Account creation, real publisher listings, booking, payment, campaign reporting, and admin workflows are not connected yet.
+
+## Run locally
+
+Requires Node.js 20+.
+
+```bash
+npm install
+npm run dev
+```
+
+Create a production build:
+
+```bash
+npm run build
+npm run preview
+```
+
+## Deployment
+
+Import this repository into Vercel. The included `vercel.json` sets the Vite build command and `dist` output directory. A live deployment still needs to be created and verified.
+
+## Roadmap
+
+1. Marketplace foundation and responsive UI
+2. Database schema, authentication, advertiser and publisher profiles
+3. Real listing submission, moderation and publisher verification
+4. Campaign briefs, shortlist, booking requests and delivery evidence
+5. Payments, platform fees, refunds and payout workflow
+6. Campaign analytics, recommendations and admin operations
+
+Build in verified increments. Do not present sample inventory as real or mark integrations complete until configured and tested.
