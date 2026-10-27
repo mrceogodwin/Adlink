@@ -9,14 +9,12 @@ function Mark(){return <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 1
 function Dashboard(){
  const [active,setActive]=useState('Overview');
  const [auth,setAuth]=useState(null);
- const [dashboardData,setDashboardData]=useState(null);
  const [checking,setChecking]=useState(true);
- const [dashboardData,setDashboardData]=useState(null);
  const [stats,setStats]=useState(null);
  const [statsError,setStatsError]=useState('');
  const [role,setRole]=useState('Advertiser');
  const [notice,setNotice]=useState('');
- useEffect(()=>{let alive=true;fetch('/api/auth/me',{credentials:'same-origin'}).then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok||!data.profile)throw new Error('Sign in required');if(alive){setAuth(data.profile);setRole(data.profile.role==='publisher'?'Publisher':'Advertiser');setChecking(false);fetch('/api/dashboard',{credentials:'same-origin'}).then(async response=>{const summary=await response.json().catch(()=>({}));if(response.ok&&alive)setDashboardData(summary);}).catch(()=>{});}fetch('/api/dashboard',{credentials:'same-origin'}).then(async response=>{const dashboard=await response.json().catch(()=>({}));if(!response.ok)throw new Error(dashboard.error||'Dashboard data unavailable');if(alive)setStats(dashboard.stats||{});}).catch(()=>{if(alive)setStatsError('Your account is signed in, but dashboard data could not be loaded.');});}).catch(()=>{if(alive)window.location.replace('/login?next=/dashboard');});return()=>{alive=false;};},[]);
+ useEffect(()=>{let alive=true;fetch('/api/auth/me',{credentials:'same-origin'}).then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok||!data.profile)throw new Error('Sign in required');if(!alive)return;setAuth(data.profile);setRole(data.profile.role==='publisher'?'Publisher':'Advertiser');setChecking(false);return fetch('/api/dashboard',{credentials:'same-origin'});}).then(async response=>{if(!response)return;const dashboard=await response.json().catch(()=>({}));if(!response.ok)throw new Error(dashboard.error||'Dashboard data unavailable');if(alive)setStats(dashboard.stats||{});}).catch(()=>{if(alive){setStatsError('Your account is signed in, but dashboard data could not be loaded.');if(!auth)window.location.replace('/login?next=/dashboard');}});return()=>{alive=false;};},[]);
  const items=useMemo(()=>role==='Publisher'?menu.filter(([name])=>!['Saved placements','Billing'].includes(name)):menu,[role]);
  const message=statsError||'Your signed-in account is connected. Counts below are loaded from your Adlink database.';
  const moneyFromMinor=value=>'₦'+Math.round(Number(value||0)/100).toLocaleString('en-NG');
