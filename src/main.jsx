@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
@@ -16,9 +16,24 @@ const placements = [
 const channels = ['All placements','Instagram','TikTok','WhatsApp','Telegram','Website','Facebook'];
 const categories = ['All categories','Entertainment','Lifestyle','Technology','Education','Business','Sports','News'];
 
-function money(n){ return '₦' + n.toLocaleString('en-NG'); }
+function money(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
+function compactNumber(n){ const value=Number(n||0); return value>=1000000?(value/1000000).toFixed(value%1000000===0?0:1)+'M':value>=1000?(value/1000).toFixed(value%1000===0?0:1)+'K':String(value); }
+function mapPlacement(p){ return {id:p.id,name:p.name,handle:p.handle,type:p.type,category:p.category,audience:compactNumber(p.audience_size),reach:p.estimated_reach==null?'—':compactNumber(p.estimated_reach),engagement:p.engagement_rate==null?'—':Number(p.engagement_rate).toFixed(1)+'%',price:Number(p.price_minor||0)/100,badge:'Verified publisher',icon:(p.name||'A').slice(0,1).toUpperCase(),color:'green',description:p.description||p.deliverable||'Advertising placement',tags:[p.category,p.type],publisher_name:p.publisher_name}; }
 function Logo(){ return <a className="brand" href="#" aria-label="Adlink home"><span className="brand-mark">a<span>.</span></span><span>adlink</span></a>; }
 function App(){
+  const [placementsData,setPlacementsData] = useState(import.meta.env.DEV ? placements : []);
+  const [catalogState,setCatalogState] = useState('loading');
+  useEffect(()=>{
+    let active=true;
+    fetch('/api/listings?limit=60').then(async response=>{
+      const body=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(body.error||'Marketplace API unavailable');
+      if(active){setPlacementsData((body.data||[]).map(mapPlacement));setCatalogState('live');}
+    }).catch(()=>{
+      if(active){setPlacementsData(import.meta.env.DEV?placements:[]);setCatalogState(import.meta.env.DEV?'demo':'unavailable');}
+    });
+    return ()=>{active=false;};
+  },[]);
   const [query,setQuery] = useState('');
   const [channel,setChannel] = useState('All placements');
   const [category,setCategory] = useState('All categories');
@@ -28,12 +43,12 @@ function App(){
   const [showAll,setShowAll] = useState(false);
   const [notice,setNotice] = useState('');
   const filtered = useMemo(()=>{
-    let data = placements.filter(p => (channel==='All placements'||p.type===channel) && (category==='All categories'||p.category===category) && p.price<=maxBudget && (query===''||[p.name,p.handle,p.type,p.category,...p.tags].join(' ').toLowerCase().includes(query.toLowerCase())));
+    let data = placementsData.filter(p => (channel==='All placements'||p.type===channel) && (category==='All categories'||p.category===category) && p.price<=maxBudget && (query===''||[p.name,p.handle,p.type,p.category,...p.tags].join(' ').toLowerCase().includes(query.toLowerCase())));
     if(sort==='Lowest price') data.sort((a,b)=>a.price-b.price);
     if(sort==='Largest audience') data.sort((a,b)=>parseFloat(b.audience)-parseFloat(a.audience));
     if(sort==='Highest engagement') data.sort((a,b)=>parseFloat(b.engagement)-parseFloat(a.engagement));
     return data;
-  },[query,channel,category,maxBudget,sort]);
+  },[placementsData,query,channel,category,maxBudget,sort]);
   const visible = showAll ? filtered : filtered.slice(0,6);
   const toggleSaved = id => setSaved(old=>old.includes(id)?old.filter(x=>x!==id):[...old,id]);
   const announce = text => {setNotice(text); window.setTimeout(()=>setNotice(''),3500);};
@@ -47,10 +62,10 @@ function App(){
       </section>
       <section className="trust-strip"><span>ONE MARKETPLACE</span><i></i><span>REAL AUDIENCES</span><i></i><span>TRANSPARENT PRICING</span><i></i><span>MADE FOR GROWTH</span></section>
       <section id="marketplace" className="market-section">
-        <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line"></span> DISCOVER YOUR NEXT PLACEMENT</div><h2>Meet your <em>audience.</em></h2><p>Browse advertising opportunities across social platforms, websites and private communities.</p></div><div className="result-note"><span className="live-dot"></span> Marketplace preview <small>Sample listings</small></div></div>
+        <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line"></span> DISCOVER YOUR NEXT PLACEMENT</div><h2>Meet your <em>audience.</em></h2><p>Browse advertising opportunities across social platforms, websites and private communities.</p></div><div className="result-note"><span className="live-dot"></span> {catalogState==='live'?'Live marketplace':catalogState==='loading'?'Loading marketplace':catalogState==='demo'?'Development preview':'Marketplace setup pending'} <small>{catalogState==='live'?'Verified publisher listings':catalogState==='demo'?'Sample listings':catalogState==='loading'?'Connecting to database':'No live listings yet'}</small></div></div>
         <div className="market-layout"><aside className="filters"><div className="filter-top"><strong>Filters</strong><button onClick={()=>{setQuery('');setChannel('All placements');setCategory('All categories');setMaxBudget(100000);setSort('Recommended');}}>Reset</button></div><label className="field-label" htmlFor="search">Search placements</label><div className="search-input"><span>⌕</span><input id="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Publisher, platform..." /></div><div className="filter-group"><div className="filter-label">Platform</div>{channels.map((c,i)=><button key={c} className={'filter-option '+(channel===c?'selected':'')} onClick={()=>setChannel(c)}><span className="platform-symbol">{['◈','◎','▶','▣','➤','▤','f'][i]}</span>{c}<span className="filter-check">{channel===c?'✓':''}</span></button>)}</div><div className="filter-group"><label className="filter-label" htmlFor="category">Category</label><select id="category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></div><div className="filter-group budget-group"><div className="budget-title"><span className="filter-label">Max. placement price</span><strong>{money(maxBudget)}</strong></div><input aria-label="Maximum price" className="range" type="range" min="5000" max="100000" step="5000" value={maxBudget} onChange={e=>setMaxBudget(Number(e.target.value))}/><div className="range-labels"><span>₦5k</span><span>₦100k+</span></div></div><div className="filter-tip"><span>✦</span><div><strong>Not sure where to start?</strong><p>Start with your audience and budget. We’ll help you narrow it down.</p><button onClick={()=>announce('Campaign recommendations are planned for the next build stage.')}>Get campaign help ↗</button></div></div></aside>
         <div className="results"><div className="results-toolbar"><span><strong>{filtered.length}</strong> placements found</span><label>Sort by <select value={sort} onChange={e=>setSort(e.target.value)}><option>Recommended</option><option>Lowest price</option><option>Largest audience</option><option>Highest engagement</option></select></label></div>
-          {visible.length===0?<div className="empty-state"><div>⌕</div><h3>No placements match yet</h3><p>Try a different platform, category or budget.</p><button className="btn btn-outline" onClick={()=>{setQuery('');setChannel('All placements');setCategory('All categories');setMaxBudget(100000);}}>Clear filters</button></div>:<div className="placement-grid">{visible.map(p=><article className="placement-card" key={p.id}><div className="placement-top"><div className={'publisher-logo '+p.color}>{p.icon}</div><button aria-label={saved.includes(p.id)?'Remove saved placement':'Save placement'} className={'save-btn '+(saved.includes(p.id)?'is-saved':'')} onClick={()=>toggleSaved(p.id)}>{saved.includes(p.id)?'♥':'♡'}</button></div><div className="publisher-meta"><span className="platform-label">{p.type}</span><span className="meta-dot">·</span><span>{p.category}</span></div><h3>{p.name}</h3><div className="handle">{p.handle}</div><p className="placement-description">{p.description}</p><div className="metric-row"><div><small>Audience</small><strong>{p.audience}</strong></div><div><small>Est. reach</small><strong>{p.reach}</strong></div><div><small>Engagement</small><strong>{p.engagement}</strong></div></div><div className="placement-bottom"><div><small>Starting from</small><strong className="price">{money(p.price)}<span>/ post</span></strong></div><button className="arrow-btn" aria-label={'View '+p.name} onClick={()=>announce(p.name+': sample listing. Booking will be enabled after backend setup.')}>↗</button></div><div className="card-badge"><span>✦</span> {p.badge}</div></article>)}</div>}
+          {visible.length===0?<div className="empty-state"><div>⌕</div><h3>{catalogState==='loading'?'Loading available placements':catalogState==='unavailable'?'Marketplace is being connected':catalogState==='live'&&filtered.length===0?'No verified placements yet':'No placements match yet'}</h3><p>{catalogState==='loading'?'Checking the live marketplace for publisher listings.':catalogState==='unavailable'?'Live listings are not available yet. Please check back soon.':catalogState==='live'&&filtered.length===0?'Verified publishers will appear here once their listings are approved.':'Try a different platform, category or budget.'}</p><button className="btn btn-outline" onClick={()=>{setQuery('');setChannel('All placements');setCategory('All categories');setMaxBudget(100000);}}>Clear filters</button></div>:<div className="placement-grid">{visible.map(p=><article className="placement-card" key={p.id}><div className="placement-top"><div className={'publisher-logo '+p.color}>{p.icon}</div><button aria-label={saved.includes(p.id)?'Remove saved placement':'Save placement'} className={'save-btn '+(saved.includes(p.id)?'is-saved':'')} onClick={()=>toggleSaved(p.id)}>{saved.includes(p.id)?'♥':'♡'}</button></div><div className="publisher-meta"><span className="platform-label">{p.type}</span><span className="meta-dot">·</span><span>{p.category}</span></div><h3>{p.name}</h3><div className="handle">{p.handle}</div><p className="placement-description">{p.description}</p><div className="metric-row"><div><small>Audience</small><strong>{p.audience}</strong></div><div><small>Est. reach</small><strong>{p.reach}</strong></div><div><small>Engagement</small><strong>{p.engagement}</strong></div></div><div className="placement-bottom"><div><small>Starting from</small><strong className="price">{money(p.price)}<span>/ post</span></strong></div><button className="arrow-btn" aria-label={'View '+p.name} onClick={()=>announce(p.name+': sample listing. Booking will be enabled after backend setup.')}>↗</button></div><div className="card-badge"><span>✦</span> {p.badge}</div></article>)}</div>}
           {filtered.length>6&&<button className="load-more" onClick={()=>setShowAll(v=>!v)}>{showAll?'Show less':'Load more placements'} <span>{showAll?'↑':'↓'}</span></button>}
           <div className="market-disclaimer">Listing prices, audiences and reach shown here are sample data for the product preview, not verified publisher offers.</div>
         </div></div>
