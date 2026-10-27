@@ -11,7 +11,7 @@ export default async function handler(request) {
     if (!email || !password || email.length > 254 || password.length > 200) return json({ error: 'Enter your email and password.' }, 400);
     const sql = db();
     const rows = await sql`
-      SELECT p.id, p.email, p.display_name, p.role, p.status, c.password_hash
+      SELECT p.id, p.email, p.display_name, p.role, p.status, p.password_hash
       FROM profiles p
       WHERE p.email = ${email} LIMIT 1
     `;
