@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 const apiModules = [
   '../api/admin-overview.js',
+  '../api/admin-actions.js',
   '../api/auth.js',
   '../api/bookings.js',
   '../api/campaigns.js',
