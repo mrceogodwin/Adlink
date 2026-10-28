@@ -20,9 +20,20 @@ async function handler(request) {
   }
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, { allow: 'GET, POST' });
   if (!checkSameOrigin(request)) return json({ error: 'Cross-origin request rejected.' }, 403);
-  if (auth.profile.role !== 'advertiser') return json({ error: 'Only advertisers can request placements.' }, 403);
+  if (!['advertiser','publisher'].includes(auth.profile.role)) return json({ error: 'This account cannot manage bookings.' }, 403);
   try {
     const body = await request.json();
+    if (auth.profile.role === 'publisher') {
+      const action = body.action === 'accept' || body.action === 'decline' ? body.action : '';
+      const bookingId = String(body.booking_id || '');
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!action || !uuid.test(bookingId)) return json({ error: 'Choose a valid booking action.' }, 400);
+      const nextStatus = action === 'accept' ? 'awaiting_payment' : 'declined';
+      const updated = await sql`UPDATE bookings SET status=${nextStatus}, accepted_at=CASE WHEN ${action}='accept' THEN now() ELSE accepted_at END, updated_at=now() WHERE id=${bookingId} AND publisher_id=(SELECT id FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1) AND status='requested' RETURNING id,status`;
+      if (!updated.length) return json({ error: 'Booking is no longer awaiting your response.' }, 409);
+      await sql`INSERT INTO audit_logs (actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},${action},'booking',${bookingId},${JSON.stringify({ status: nextStatus })}::jsonb)`;
+      return json({ booking: updated[0] });
+    }
     const placementId = String(body.placement_id || '');
     const campaignId = String(body.campaign_id || '');
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
