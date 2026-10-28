@@ -28,7 +28,7 @@ export default function Admin(){
    const refreshed=await fetch('/api/admin-overview',{credentials:'same-origin'});
    const data=await refreshed.json().catch(()=>({}));
    if(!refreshed.ok)throw new Error(data.error||'Action saved, but queue refresh failed.');
-   setOverview(data);setNotice((entity==='publisher'?'Publisher':'Placement')+' '+action+'d successfully.');
+   setOverview(data);setNotice((entity==='publisher'?'Publisher':'Placement')+(action==='approve'?' approved successfully.':entity==='placement'?' rejected.':' rejected.'));
   }catch(error){setNotice(error.message||'Review action failed.');}
   finally{setReviewBusy('');}
  }
