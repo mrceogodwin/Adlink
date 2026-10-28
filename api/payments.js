@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
@@ -66,7 +66,7 @@ async function handler(request) {
     const amount = Number(booking.amount_minor);
     if (!Number.isSafeInteger(amount) || amount < 100) return json({ error: 'Booking amount is invalid.' }, 400);
 
-    const reference = 'adlink_' + booking.id.replaceAll('-', '') + '_' + crypto.randomUUID().replaceAll('-', '');
+    const reference = 'adlink_' + booking.id.replaceAll('-', '') + '_' + randomUUID().replaceAll('-', '');
     const origin = new URL(request.url).origin;
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
