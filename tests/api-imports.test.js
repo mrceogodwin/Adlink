@@ -11,6 +11,7 @@ const apiModules = [
   '../api/health.js',
   '../api/listings.js',
   '../api/publisher-placements.js',
+  '../api/payments.js',
   '../api/saved-placements.js',
 ];
 
