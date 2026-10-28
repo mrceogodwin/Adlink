@@ -65,6 +65,9 @@ async function handler(request) {
     if (booking.status !== 'awaiting_payment') return json({ error: 'This booking must be accepted by the publisher before payment.' }, 409);
     const amount = Number(booking.amount_minor);
     if (!Number.isSafeInteger(amount) || amount < 100) return json({ error: 'Booking amount is invalid.' }, 400);
+    await sql`UPDATE payment_events SET status='failed' WHERE booking_id=${booking.id} AND provider='paystack' AND status IN ('initialized','pending') AND created_at <= now() - interval '20 minutes'`;
+    const inProgress = await sql`SELECT id FROM payment_events WHERE booking_id=${booking.id} AND provider='paystack' AND status IN ('initialized','pending') AND created_at > now() - interval '20 minutes' LIMIT 1`;
+    if (inProgress.length) return json({ error: 'A checkout was already started for this booking. Complete it or wait 20 minutes before trying again.' }, 409);
 
     const reference = 'adlink_' + booking.id.replaceAll('-', '') + '_' + randomUUID().replaceAll('-', '');
     const origin = new URL(request.url).origin;
