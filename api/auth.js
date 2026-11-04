@@ -4,12 +4,10 @@ import login from '../lib/auth-routes/login.js';
 import register from '../lib/auth-routes/register.js';
 import logout from '../lib/auth-routes/logout.js';
 import me from '../lib/auth-routes/me.js';
-import googleStart from '../lib/auth-routes/google-start.js';
-import googleCallback from '../lib/auth-routes/google-callback.js';
 
 // Keep all auth actions in one Vercel function to stay within the Hobby-plan
 // function limit. Existing /api/auth/<action> URLs are rewritten in vercel.json.
-const handlers = { login, register, logout, me, 'google-start': googleStart, 'google-callback': googleCallback };
+const handlers = { login, register, logout, me };
 
 async function handler(request) {
   const url = new URL(request.url);
