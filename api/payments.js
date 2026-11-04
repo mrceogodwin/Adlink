@@ -38,7 +38,13 @@ async function handler(request) {
         return json({ error: 'Payment amount or currency mismatch.' }, 400);
       }
       const commissionSettings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
-      const commissionBps = Math.min(10000, Math.max(0, Number(commissionSettings[0]?.setting_value ?? 1500)));
+      const rawCommission = commissionSettings[0]?.setting_value;
+      const configuredCommission = rawCommission && typeof rawCommission === 'object'
+        ? Number(rawCommission.bps ?? rawCommission.value ?? rawCommission.rate_bps)
+        : Number(rawCommission);
+      const commissionBps = Number.isFinite(configuredCommission)
+        ? Math.min(10000, Math.max(0, Math.round(configuredCommission)))
+        : 1500;
       // Process the successful event, booking transition, and earnings insertion in
       // one database statement. A retried webhook can also repair an earlier partial
       // success because already-successful events are reprocessed idempotently.
@@ -118,18 +124,29 @@ async function handler(request) {
 
     const reference = 'adlink_' + booking.id.replaceAll('-', '') + '_' + randomUUID().replaceAll('-', '');
     const origin = new URL(request.url).origin;
-    const response = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
-      headers: { authorization: 'Bearer ' + secret, 'content-type': 'application/json' },
-      body: JSON.stringify({ email: booking.email, amount, currency: 'NGN', reference, callback_url: origin + '/dashboard?payment=return' })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.status || !result.data?.authorization_url) {
-      console.error('Paystack initialization failed', { status: response.status, message: result.message });
-      return json({ error: 'Could not start checkout. Please try again.' }, 502);
+    // Persist the reference before contacting Paystack. If Paystack accepts the
+    // request but our connection drops, the webhook can still reconcile the charge.
+    const initialized = await sql`INSERT INTO payment_events (booking_id,provider,provider_reference,amount_minor,currency,status,provider_payload) VALUES (${booking.id},'paystack',${reference},${amount},'NGN','initialized','{}'::jsonb) RETURNING id`;
+    try {
+      const response = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + secret, 'content-type': 'application/json' },
+        body: JSON.stringify({ email: booking.email, amount, currency: 'NGN', reference, callback_url: origin + '/dashboard?payment=return' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.status || !result.data?.authorization_url) {
+        await sql`UPDATE payment_events SET status='failed', provider_payload=${JSON.stringify({ initialization_error: result.message || 'Paystack initialization failed' })}::jsonb WHERE id=${initialized[0].id} AND status='initialized'`;
+        console.error('Paystack initialization failed', { status: response.status, message: result.message });
+        return json({ error: 'Could not start checkout. Please try again.' }, 502);
+      }
+      await sql`UPDATE payment_events SET status='pending', provider_payload=${JSON.stringify({ access_code: result.data.access_code })}::jsonb WHERE id=${initialized[0].id} AND status='initialized'`;
+      return json({ authorization_url: result.data.authorization_url, reference }, 201);
+    } catch (providerError) {
+      // Keep the initialized reference for reconciliation if the provider request
+      // may have reached Paystack before a network failure occurred.
+      console.error('Paystack initialization outcome uncertain', { message: providerError?.message });
+      return json({ error: 'Checkout status is being verified. Please refresh before starting another payment.' }, 502);
     }
-    await sql`INSERT INTO payment_events (booking_id,provider,provider_reference,amount_minor,currency,status,provider_payload) VALUES (${booking.id},'paystack',${reference},${amount},'NGN','pending',${JSON.stringify({ access_code: result.data.access_code })}::jsonb)`;
-    return json({ authorization_url: result.data.authorization_url, reference }, 201);
   } catch (error) {
     console.error('Payment checkout initialization failed', { message: error?.message, code: error?.code });
     return json({ error: 'Could not start checkout. Please try again.' }, 500);
