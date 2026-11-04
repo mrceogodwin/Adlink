@@ -37,12 +37,12 @@ async function handler(request) {
         const reference = String(body.payout_reference || '').trim();
         if (reference.length < 4 || reference.length > 120) return json({ error: 'Enter a valid bank or transfer reference before marking paid.' }, 400);
         rows = await sql`UPDATE payout_requests SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='approved' RETURNING id, amount_minor, status, payout_reference, paid_at`;
-        if (rows.length) await sql`UPDATE publisher_earnings SET status='paid', updated_at=now() WHERE publisher_id=(SELECT publisher_id FROM payout_requests WHERE id=${id}) AND status='pending' AND payment_event_id IN (SELECT pe.id FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id WHERE b.publisher_id=(SELECT publisher_id FROM payout_requests WHERE id=${id}) ORDER BY pe.created_at LIMIT 0)`;
+        if (rows.length) await sql`UPDATE publisher_earnings SET status='paid', updated_at=now() WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id=${id}) AND status='pending'`;
       } else {
         rows = action === 'approve'
           ? await sql`UPDATE payout_requests SET status='approved', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`
           : await sql`UPDATE payout_requests SET status='rejected', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`;
-        if (rows.length && action === 'reject') await sql`UPDATE publisher_earnings SET status='available', updated_at=now() WHERE publisher_id=(SELECT publisher_id FROM payout_requests WHERE id=${id}) AND status='pending'`;
+        if (rows.length && action === 'reject') await sql`UPDATE publisher_earnings SET status='available', updated_at=now() WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id=${id}) AND status='pending'`;
       }
     }
     if (!rows.length) return json({ error: 'Record was not found in the expected status. Refresh and try again.' }, 409);
