@@ -7,7 +7,7 @@ async function handler(request) {
   if (auth.error) return auth.error;
   try {
     const sql = db();
-    const [stats, pendingPublishers, pendingPlacements, recentAudit] = await Promise.all([
+    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments] = await Promise.all([
       sql`SELECT
         (SELECT count(*)::int FROM profiles) AS users,
         (SELECT count(*)::int FROM profiles WHERE role='advertiser') AS advertisers,
@@ -21,9 +21,12 @@ async function handler(request) {
       `,
       sql`SELECT pp.id, pp.business_name, pp.verification_status, pp.created_at, p.email, p.display_name FROM publisher_profiles pp JOIN profiles p ON p.id=pp.profile_id WHERE pp.verification_status IN ('unverified','pending') ORDER BY pp.created_at ASC LIMIT 12`,
       sql`SELECT p.id, p.title, p.platform, p.category, p.created_at, pp.business_name FROM placements p JOIN publisher_profiles pp ON pp.id=p.publisher_id WHERE p.status='pending_review' ORDER BY p.created_at ASC LIMIT 12`,
-      sql`SELECT action, entity_type, entity_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 12`
+      sql`SELECT action, entity_type, entity_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 50`,
+      sql`SELECT id, display_name, email, role, status, created_at FROM profiles ORDER BY created_at DESC LIMIT 50`,
+      sql`SELECT b.id, b.status, b.amount_minor, b.currency, b.created_at, a.display_name AS advertiser_name, a.email AS advertiser_email, pp.business_name AS publisher_name, pl.title AS placement_title FROM bookings b JOIN profiles a ON a.id=b.advertiser_id JOIN publisher_profiles pp ON pp.id=b.publisher_id JOIN placements pl ON pl.id=b.placement_id ORDER BY b.created_at DESC LIMIT 50`,
+      sql`SELECT pe.id, pe.provider, pe.provider_reference, pe.amount_minor, pe.currency, pe.status, pe.verified_at, pe.created_at, b.id AS booking_id, p.email AS advertiser_email FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id JOIN profiles p ON p.id=b.advertiser_id ORDER BY pe.created_at DESC LIMIT 50`
     ]);
-    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit });
+    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments });
   } catch (error) {
     console.error('Admin overview query failed', { message: error?.message, code: error?.code });
     return json({ error: 'Could not load owner dashboard data.' }, 500);
