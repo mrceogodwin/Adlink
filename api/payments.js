@@ -39,7 +39,15 @@ async function handler(request) {
       }
       const confirmed = await sql`UPDATE payment_events SET status='successful', verified_at=now(), provider_payload=${JSON.stringify(event.data || {})}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending') RETURNING id`;
       if (!confirmed.length) return json({ received: true, duplicate: true });
-      await sql`UPDATE bookings SET status='paid', updated_at=now() WHERE id=${payment.booking_id} AND status='awaiting_payment'`;
+      const bookingRows = await sql`UPDATE bookings SET status='paid', updated_at=now() WHERE id=${payment.booking_id} AND status='awaiting_payment' RETURNING id,publisher_id,amount_minor`;
+      if (bookingRows.length) {
+        const settings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
+        const commissionBps = Math.min(10000, Math.max(0, Number(settings[0]?.setting_value ?? 1500)));
+        const grossMinor = Number(bookingRows[0].amount_minor);
+        const commissionMinor = Math.round(grossMinor * commissionBps / 10000);
+        const netMinor = grossMinor - commissionMinor;
+        await sql`INSERT INTO publisher_earnings (payment_event_id,booking_id,publisher_id,gross_amount_minor,commission_bps,commission_amount_minor,net_amount_minor,status) VALUES (${payment.id},${bookingRows[0].id},${bookingRows[0].publisher_id},${grossMinor},${commissionBps},${commissionMinor},${netMinor},'pending') ON CONFLICT (payment_event_id) DO NOTHING`;
+      }
       await sql`INSERT INTO audit_logs (action, entity_type, entity_id, details) VALUES ('paystack_charge_success','payment',${payment.id},${JSON.stringify({ reference, amount, currency })}::jsonb)`;
       return json({ received: true });
     } catch (error) {
