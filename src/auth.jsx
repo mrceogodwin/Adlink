@@ -27,7 +27,14 @@ export default function AuthPage() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not sign you in.');
       const next = new URLSearchParams(window.location.search).get('next');
-      window.location.assign(next && next.startsWith('/') && !next.startsWith('//') ? next : result.profile?.role === 'super_admin' ? '/admin' : '/dashboard');
+      let safeNext = '';
+      if (next) {
+        try {
+          const destination = new URL(next, window.location.origin);
+          if (destination.origin === window.location.origin && next.startsWith('/') && !next.startsWith('//')) safeNext = destination.pathname + destination.search + destination.hash;
+        } catch { /* Ignore malformed redirect targets and use the role-based destination. */ }
+      }
+      window.location.assign(safeNext || (result.profile?.role === 'super_admin' ? '/admin' : '/dashboard'));
     } catch (err) {
       setError(err.message || 'Connection failed. Please try again.');
     } finally {
