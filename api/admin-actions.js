@@ -11,10 +11,12 @@ async function handler(request) {
 
   try {
     const body = await request.json();
-    const entity = body.entity === 'publisher' || body.entity === 'placement' ? body.entity : '';
-    const action = body.action === 'approve' || body.action === 'reject' ? body.action : '';
+    const entity = ['publisher','placement','user'].includes(body.entity) ? body.entity : '';
+    const action = ['approve','reject','suspend','reactivate'].includes(body.action) ? body.action : '';
     const id = String(body.id || '');
-    if (!entity || !action || !UUID.test(id)) return json({ error: 'Choose a valid review action and record.' }, 400);
+    const validAction = entity === 'publisher' || entity === 'placement' ? ['approve','reject'].includes(action) : entity === 'user' ? ['suspend','reactivate'].includes(action) : false;
+    if (!entity || !validAction || !UUID.test(id)) return json({ error: 'Choose a valid review action and record.' }, 400);
+    if (entity === 'user' && id === auth.profile.id) return json({ error: 'You cannot change your own account status from this screen.' }, 400);
 
     const sql = db();
     let rows;
@@ -22,10 +24,14 @@ async function handler(request) {
       rows = action === 'approve'
         ? await sql`UPDATE publisher_profiles SET verification_status='verified', updated_at=now() WHERE id=${id} AND verification_status IN ('unverified','pending') RETURNING id, business_name, verification_status`
         : await sql`UPDATE publisher_profiles SET verification_status='rejected', updated_at=now() WHERE id=${id} AND verification_status IN ('unverified','pending') RETURNING id, business_name, verification_status`;
-    } else {
+    } else if (entity === 'placement') {
       rows = action === 'approve'
         ? await sql`UPDATE placements SET status='published', verified_at=now(), updated_at=now() WHERE id=${id} AND status='pending_review' RETURNING id, title, status`
         : await sql`UPDATE placements SET status='rejected', updated_at=now() WHERE id=${id} AND status='pending_review' RETURNING id, title, status`;
+    } else {
+      rows = action === 'suspend'
+        ? await sql`UPDATE profiles SET status='suspended', updated_at=now() WHERE id=${id} AND status='active' AND role <> 'super_admin' RETURNING id, email, role, status`
+        : await sql`UPDATE profiles SET status='active', updated_at=now() WHERE id=${id} AND status='suspended' AND role <> 'super_admin' RETURNING id, email, role, status`;
     }
     if (!rows.length) return json({ error: 'Record was not found in the pending review queue. Refresh and try again.' }, 409);
 
