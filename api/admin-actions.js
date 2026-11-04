@@ -1,9 +1,11 @@
 import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
+import { adminUsersHandler } from '../lib/admin-users.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function handler(request) {
+  if (new URL(request.url).searchParams.get('action') === 'users') return adminUsersHandler(request);
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, { allow: 'POST' });
   if (!checkSameOrigin(request)) return json({ error: 'Cross-origin request rejected.' }, 403);
   const auth = await requireSession(request, ['super_admin']);
