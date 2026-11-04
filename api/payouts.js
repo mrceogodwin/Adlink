@@ -10,7 +10,7 @@ async function handler(request) {
       const rows = await sql`SELECT id FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1`;
       if (!rows.length) return json({ error: 'Publisher profile not found.' }, 404);
       const [balances, requests] = await Promise.all([
-        sql`SELECT status, coalesce(sum(net_amount_minor),0)::bigint AS amount_minor, count(*)::int AS entries FROM publisher_earnings WHERE publisher_id=${rows[0].id} GROUP BY status`,
+        sql`SELECT CASE WHEN status='available' AND EXISTS (SELECT 1 FROM payout_request_items pri JOIN payout_requests pr ON pr.id=pri.payout_request_id WHERE pri.earning_id=publisher_earnings.id AND pr.status IN ('requested','approved','processing')) THEN 'reserved' ELSE status END AS status, coalesce(sum(net_amount_minor),0)::bigint AS amount_minor, count(*)::int AS entries FROM publisher_earnings WHERE publisher_id=${rows[0].id} GROUP BY 1`,
         sql`SELECT id, amount_minor, currency, status, requested_at, reviewed_at, paid_at, admin_note FROM payout_requests WHERE publisher_id=${rows[0].id} ORDER BY requested_at DESC LIMIT 50`
       ]);
       return json({ balances, requests });
@@ -29,7 +29,7 @@ async function handler(request) {
     if (!profile.length) return json({ error: 'A verified publisher profile is required to request a payout.' }, 403);
     const created = await sql`WITH locked AS MATERIALIZED (
       SELECT id, net_amount_minor FROM publisher_earnings
-      WHERE publisher_id=${profile[0].id} AND status='available'
+      WHERE publisher_id=${profile[0].id} AND status='available' AND NOT EXISTS (SELECT 1 FROM payout_request_items pri JOIN payout_requests pr ON pr.id=pri.payout_request_id WHERE pri.earning_id=publisher_earnings.id AND pr.status IN ('requested','approved','processing'))
       ORDER BY available_at NULLS LAST, created_at, id
       FOR UPDATE
     ), total AS (
@@ -44,11 +44,8 @@ async function handler(request) {
       SELECT request_row.id, locked.id FROM request_row CROSS JOIN locked
       RETURNING earning_id
     ), reserved AS (
-      UPDATE publisher_earnings SET status='reserved', updated_at=now()
-      WHERE id IN (SELECT earning_id FROM linked)
-      RETURNING id
     )
-    SELECT request_row.* FROM request_row WHERE (SELECT count(*) FROM reserved)=(SELECT count(*) FROM locked)`;
+    SELECT request_row.* FROM request_row WHERE (SELECT count(*) FROM linked)=(SELECT count(*) FROM locked)`;
     if (!created.length) return json({ error: 'Insufficient available balance. For now, withdrawals must equal the full available balance.' }, 409);
     await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},'payout_requested','payout_request',${created[0].id},${JSON.stringify({ amount_minor: amountMinor })}::jsonb)`;
     return json({ payout_request: created[0] }, 201);
