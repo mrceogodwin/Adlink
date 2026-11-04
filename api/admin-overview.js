@@ -7,7 +7,7 @@ async function handler(request) {
   if (auth.error) return auth.error;
   try {
     const sql = db();
-    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles] = await Promise.all([
+    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles, earningsSummary, payoutRequests, commissionSetting] = await Promise.all([
       sql`SELECT
         (SELECT count(*)::int FROM profiles) AS users,
         (SELECT count(*)::int FROM profiles WHERE role='advertiser') AS advertisers,
@@ -26,9 +26,12 @@ async function handler(request) {
       sql`SELECT b.id, b.status, b.amount_minor, b.currency, b.created_at, a.display_name AS advertiser_name, a.email AS advertiser_email, pp.business_name AS publisher_name, pl.title AS placement_title FROM bookings b JOIN profiles a ON a.id=b.advertiser_id JOIN publisher_profiles pp ON pp.id=b.publisher_id JOIN placements pl ON pl.id=b.placement_id ORDER BY b.created_at DESC LIMIT 50`,
       sql`SELECT pe.id, pe.provider, pe.provider_reference, pe.amount_minor, pe.currency, pe.status, pe.verified_at, pe.created_at, b.id AS booking_id, p.email AS advertiser_email FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id JOIN profiles p ON p.id=b.advertiser_id ORDER BY pe.created_at DESC LIMIT 100`,
       sql`SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month_key, to_char(date_trunc('month', created_at), 'Mon YYYY') AS month_label, coalesce(sum(amount_minor),0)::bigint AS amount_minor, count(*)::int AS transactions FROM payment_events WHERE status='successful' AND created_at >= date_trunc('month', now()) - interval '5 months' GROUP BY date_trunc('month', created_at) ORDER BY date_trunc('month', created_at) ASC`,
-      sql`SELECT pp.id, pp.business_name, pp.verification_status, pp.payout_provider, CASE WHEN pp.payout_account_reference IS NULL OR pp.payout_account_reference='' THEN false ELSE true END AS payout_details_present, CASE WHEN pp.payout_account_reference IS NULL OR pp.payout_account_reference='' THEN NULL ELSE right(pp.payout_account_reference,4) END AS payout_reference_last4, p.email FROM publisher_profiles pp JOIN profiles p ON p.id=pp.profile_id ORDER BY pp.created_at DESC LIMIT 100`
+      sql`SELECT pp.id, pp.business_name, pp.verification_status, pp.payout_provider, CASE WHEN pp.payout_account_reference IS NULL OR pp.payout_account_reference='' THEN false ELSE true END AS payout_details_present, CASE WHEN pp.payout_account_reference IS NULL OR pp.payout_account_reference='' THEN NULL ELSE right(pp.payout_account_reference,4) END AS payout_reference_last4, p.email FROM publisher_profiles pp JOIN profiles p ON p.id=pp.profile_id ORDER BY pp.created_at DESC LIMIT 100`,
+      sql`SELECT status, count(*)::int AS entries, coalesce(sum(gross_amount_minor),0)::bigint AS gross_minor, coalesce(sum(commission_amount_minor),0)::bigint AS commission_minor, coalesce(sum(net_amount_minor),0)::bigint AS publisher_net_minor FROM publisher_earnings GROUP BY status ORDER BY status`,
+      sql`SELECT pr.id, pr.amount_minor, pr.currency, pr.status, pr.requested_at, pr.admin_note, pp.business_name, p.email FROM payout_requests pr JOIN publisher_profiles pp ON pp.id=pr.publisher_id JOIN profiles p ON p.id=pp.profile_id ORDER BY pr.requested_at DESC LIMIT 100`,
+      sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`
     ]);
-    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles });
+    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles, earningsSummary, payoutRequests, commissionBps: Number(commissionSetting[0]?.setting_value ?? 1500) });
   } catch (error) {
     console.error('Admin overview query failed', { message: error?.message, code: error?.code });
     return json({ error: 'Could not load owner dashboard data.' }, 500);
