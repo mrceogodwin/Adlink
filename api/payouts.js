@@ -29,25 +29,21 @@ async function handler(request) {
     if (!Number.isSafeInteger(amountMinor) || amountMinor < 100) return json({ error: 'Enter a withdrawal amount of at least ₦1.00.' }, 400);
     const profile = await sql`SELECT id FROM publisher_profiles WHERE profile_id=${auth.profile.id} AND verification_status='verified' LIMIT 1`;
     if (!profile.length) return json({ error: 'A verified publisher profile is required to request a payout.' }, 403);
-    const created = await sql`WITH eligible AS (
-      SELECT id FROM publisher_earnings
-      WHERE publisher_id=${profile[0].id} AND status='available'
-      ORDER BY available_at, created_at
-      FOR UPDATE
-    ), totals AS (
-      SELECT coalesce(sum(net_amount_minor),0)::bigint AS available_minor FROM publisher_earnings WHERE publisher_id=${profile[0].id} AND status='available'
+    const created = await sql`WITH totals AS (
+      SELECT coalesce(sum(net_amount_minor),0)::bigint AS available_minor
+      FROM publisher_earnings WHERE publisher_id=${profile[0].id} AND status='available'
     ), reserved AS (
       UPDATE publisher_earnings SET status='pending', updated_at=now()
-      WHERE id IN (SELECT id FROM eligible)
-        AND (SELECT available_minor FROM totals) >= ${amountMinor}
+      WHERE publisher_id=${profile[0].id} AND status='available'
+        AND (SELECT available_minor FROM totals)=${amountMinor}
       RETURNING id, net_amount_minor
     ), request_row AS (
       INSERT INTO payout_requests(publisher_id,amount_minor,currency,status)
       SELECT ${profile[0].id},${amountMinor},'NGN','requested'
-      WHERE (SELECT coalesce(sum(net_amount_minor),0) FROM reserved) >= ${amountMinor}
+      WHERE (SELECT coalesce(sum(net_amount_minor),0) FROM reserved)=${amountMinor}
       RETURNING id, amount_minor, currency, status, requested_at
     )
-    SELECT request_row.*, (SELECT coalesce(sum(net_amount_minor),0)::bigint FROM reserved) AS reserved_minor FROM request_row`;
+    SELECT request_row.* FROM request_row`;
     if (!created.length) return json({ error: 'Insufficient available balance or payout request could not be reserved.' }, 409);
     await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},'payout_requested','payout_request',${created[0].id},${JSON.stringify({ amount_minor: amountMinor })}::jsonb)`;
     return json({ payout_request: created[0] }, 201);
