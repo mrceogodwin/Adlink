@@ -48,7 +48,7 @@ export default function AuthDialog({ initialMode = 'login', onClose }) {
         <label>Email address<input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required maxLength={254} placeholder="you@example.com" /></label>
         <label>Password<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={mode === 'login' ? 1 : 12} maxLength={200} placeholder={mode === 'login' ? 'Enter your password' : 'At least 12 characters'} /></label>
         {error && <div className="auth-error" role="alert">{error}</div>}
-        <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in securely ↗' : 'Create account ↗'}</button>
+        <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in securely ' : 'Create account '}</button>
       </form>
       <p className="auth-footnote">Your session is protected with an HttpOnly cookie. Admin privileges cannot be selected during public registration.</p>
     </section>
