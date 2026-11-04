@@ -38,16 +38,28 @@ async function handler(request) {
       if (action === 'mark_paid') {
         const reference = String(body.payout_reference || '').trim();
         if (reference.length < 4 || reference.length > 120) return json({ error: 'Enter a valid bank or transfer reference before marking paid.' }, 400);
-        rows = await sql`WITH paid_request AS (
+        rows = await sql`WITH item_status AS (
+          SELECT pr.id,
+            count(pri.earning_id)::int AS item_count,
+            count(pe.id) FILTER (WHERE pe.status='available')::int AS available_count
+          FROM payout_requests pr
+          JOIN payout_request_items pri ON pri.payout_request_id=pr.id
+          LEFT JOIN publisher_earnings pe ON pe.id=pri.earning_id
+          WHERE pr.id=${id}
+          GROUP BY pr.id
+        ), paid_request AS (
           UPDATE payout_requests SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now()
           WHERE id=${id} AND status='approved'
+            AND EXISTS (SELECT 1 FROM item_status WHERE item_count > 0 AND item_count=available_count)
           RETURNING id, amount_minor, status, payout_reference, paid_at
         ), settled AS (
           UPDATE publisher_earnings SET status='paid', updated_at=now()
-          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM paid_request)) AND status='available'
+          WHERE status='available'
+            AND id IN (SELECT pri.earning_id FROM payout_request_items pri JOIN paid_request pr ON pr.id=pri.payout_request_id)
           RETURNING id
         )
-        SELECT paid_request.* FROM paid_request WHERE (SELECT count(*) FROM settled)=(SELECT count(*) FROM payout_request_items WHERE payout_request_id=paid_request.id)`;
+        SELECT paid_request.* FROM paid_request
+        WHERE (SELECT count(*) FROM settled)=(SELECT item_count FROM item_status)`;
       } else if (action === 'approve') {
         rows = await sql`UPDATE payout_requests SET status='approved', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`;
       } else {
