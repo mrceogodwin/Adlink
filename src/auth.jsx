@@ -46,7 +46,7 @@ export default function AuthPage() {
         <label>Password<input type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={mode === 'register' ? 12 : 1} maxLength={200} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode === 'register' ? 'At least 12 characters' : 'Your password'} /></label>
         {mode === 'register' && <label>Account type<select value={role} onChange={e=>setRole(e.target.value)}><option value="advertiser">Advertiser — book placements</option><option value="publisher">Publisher — list your audience</option></select></label>}
         {error && <div className="auth-error" role="alert">{error}</div>}
-        <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create my account ↗' : 'Log in securely ↗'}</button>
+        <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'register' ? 'Create my account ' : 'Log in securely '}</button>
       </form>
       <p className="auth-legal">Your password is stored as a one-way hash. Admin access cannot be requested through public registration.</p>
     </section>
