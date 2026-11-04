@@ -42,7 +42,7 @@ async function handler(request) {
           RETURNING id, amount_minor, status, payout_reference, paid_at
         ), settled AS (
           UPDATE publisher_earnings SET status='paid', updated_at=now()
-          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM paid_request)) AND status='pending'
+          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM paid_request)) AND status='reserved'
           RETURNING id
         )
         SELECT paid_request.* FROM paid_request WHERE (SELECT count(*) FROM settled)=(SELECT count(*) FROM payout_request_items WHERE payout_request_id=paid_request.id)`;
@@ -55,7 +55,7 @@ async function handler(request) {
           RETURNING id, amount_minor, status
         ), released AS (
           UPDATE publisher_earnings SET status='available', updated_at=now()
-          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM rejected)) AND status='pending'
+          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM rejected)) AND status='reserved'
           RETURNING id
         )
         SELECT rejected.* FROM rejected WHERE (SELECT count(*) FROM released)=(SELECT count(*) FROM payout_request_items WHERE payout_request_id=rejected.id)`;
