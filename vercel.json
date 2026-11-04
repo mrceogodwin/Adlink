@@ -5,6 +5,14 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/api/auth/google/callback",
+      "destination": "/api/auth?action=google-callback"
+    },
+    {
+      "source": "/api/auth/google",
+      "destination": "/api/auth?action=google"
+    },
+    {
       "source": "/api/admin-users",
       "destination": "/api/admin-actions?action=users"
     },
