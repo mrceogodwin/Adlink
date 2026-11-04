@@ -11,10 +11,10 @@ async function handler(request) {
 
   try {
     const body = await request.json();
-    const entity = ['publisher','placement','user'].includes(body.entity) ? body.entity : '';
-    const action = ['approve','reject','suspend','reactivate'].includes(body.action) ? body.action : '';
+    const entity = ['publisher','placement','user','payout'].includes(body.entity) ? body.entity : '';
+    const action = ['approve','reject','suspend','reactivate','mark_paid'].includes(body.action) ? body.action : '';
     const id = String(body.id || '');
-    const validAction = entity === 'publisher' || entity === 'placement' ? ['approve','reject'].includes(action) : entity === 'user' ? ['suspend','reactivate'].includes(action) : false;
+    const validAction = entity === 'publisher' || entity === 'placement' ? ['approve','reject'].includes(action) : entity === 'user' ? ['suspend','reactivate'].includes(action) : entity === 'payout' ? ['approve','reject','mark_paid'].includes(action) : false;
     if (!entity || !validAction || !UUID.test(id)) return json({ error: 'Choose a valid review action and record.' }, 400);
     if (entity === 'user' && id === auth.profile.id) return json({ error: 'You cannot change your own account status from this screen.' }, 400);
 
@@ -28,12 +28,24 @@ async function handler(request) {
       rows = action === 'approve'
         ? await sql`UPDATE placements SET status='published', verified_at=now(), updated_at=now() WHERE id=${id} AND status='pending_review' RETURNING id, title, status`
         : await sql`UPDATE placements SET status='rejected', updated_at=now() WHERE id=${id} AND status='pending_review' RETURNING id, title, status`;
-    } else {
+    } else if (entity === 'user') {
       rows = action === 'suspend'
         ? await sql`UPDATE profiles SET status='suspended', updated_at=now() WHERE id=${id} AND status='active' AND role <> 'super_admin' RETURNING id, email, role, status`
         : await sql`UPDATE profiles SET status='active', updated_at=now() WHERE id=${id} AND status='suspended' AND role <> 'super_admin' RETURNING id, email, role, status`;
+    } else {
+      if (action === 'mark_paid') {
+        const reference = String(body.payout_reference || '').trim();
+        if (reference.length < 4 || reference.length > 120) return json({ error: 'Enter a valid bank or transfer reference before marking paid.' }, 400);
+        rows = await sql`UPDATE payout_requests SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='approved' RETURNING id, amount_minor, status, payout_reference, paid_at`;
+        if (rows.length) await sql`UPDATE publisher_earnings SET status='paid', updated_at=now() WHERE publisher_id=(SELECT publisher_id FROM payout_requests WHERE id=${id}) AND status='pending' AND payment_event_id IN (SELECT pe.id FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id WHERE b.publisher_id=(SELECT publisher_id FROM payout_requests WHERE id=${id}) ORDER BY pe.created_at LIMIT 0)`;
+      } else {
+        rows = action === 'approve'
+          ? await sql`UPDATE payout_requests SET status='approved', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`
+          : await sql`UPDATE payout_requests SET status='rejected', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`;
+        if (rows.length && action === 'reject') await sql`UPDATE publisher_earnings SET status='available', updated_at=now() WHERE publisher_id=(SELECT publisher_id FROM payout_requests WHERE id=${id}) AND status='pending'`;
+      }
     }
-    if (!rows.length) return json({ error: 'Record was not found in the pending review queue. Refresh and try again.' }, 409);
+    if (!rows.length) return json({ error: 'Record was not found in the expected status. Refresh and try again.' }, 409);
 
     await sql`INSERT INTO audit_logs (actor_profile_id, action, entity_type, entity_id, details) VALUES (${auth.profile.id}, ${action}, ${entity}, ${id}, ${JSON.stringify({ result: rows[0] })}::jsonb)`;
     return json({ success: true, record: rows[0] });
