@@ -37,17 +37,51 @@ async function handler(request) {
         await sql`UPDATE payment_events SET status='failed', provider_payload=${JSON.stringify(event.data || {})}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
         return json({ error: 'Payment amount or currency mismatch.' }, 400);
       }
-      const confirmed = await sql`UPDATE payment_events SET status='successful', verified_at=now(), provider_payload=${JSON.stringify(event.data || {})}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending') RETURNING id`;
-      if (!confirmed.length) return json({ received: true, duplicate: true });
-      const bookingRows = await sql`UPDATE bookings SET status='paid', updated_at=now() WHERE id=${payment.booking_id} AND status='awaiting_payment' RETURNING id,publisher_id,amount_minor`;
-      if (bookingRows.length) {
-        const settings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
-        const commissionBps = Math.min(10000, Math.max(0, Number(settings[0]?.setting_value ?? 1500)));
-        const grossMinor = Number(bookingRows[0].amount_minor);
-        const commissionMinor = Math.round(grossMinor * commissionBps / 10000);
-        const netMinor = grossMinor - commissionMinor;
-        await sql`INSERT INTO publisher_earnings (payment_event_id,booking_id,publisher_id,gross_amount_minor,commission_bps,commission_amount_minor,net_amount_minor,status) VALUES (${payment.id},${bookingRows[0].id},${bookingRows[0].publisher_id},${grossMinor},${commissionBps},${commissionMinor},${netMinor},'pending') ON CONFLICT (payment_event_id) DO NOTHING`;
-      }
+      const commissionSettings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
+      const commissionBps = Math.min(10000, Math.max(0, Number(commissionSettings[0]?.setting_value ?? 1500)));
+      // Process the successful event, booking transition, and earnings insertion in
+      // one database statement. A retried webhook can also repair an earlier partial
+      // success because already-successful events are reprocessed idempotently.
+      const processed = await sql`
+        WITH event_update AS (
+          UPDATE payment_events
+          SET status='successful', verified_at=coalesce(verified_at,now()), provider_payload=${JSON.stringify(event.data || {})}::jsonb
+          WHERE id=${payment.id} AND status IN ('initialized','pending')
+          RETURNING id, booking_id
+        ), event_existing AS (
+          SELECT id, booking_id FROM payment_events
+          WHERE id=${payment.id} AND status='successful'
+            AND NOT EXISTS (SELECT 1 FROM event_update)
+        ), valid_event AS (
+          SELECT id, booking_id FROM event_update
+          UNION ALL
+          SELECT id, booking_id FROM event_existing
+        ), booking_paid AS (
+          UPDATE bookings b SET status='paid', updated_at=now()
+          FROM valid_event e
+          WHERE b.id=e.booking_id AND b.status='awaiting_payment'
+          RETURNING b.id,b.publisher_id,b.amount_minor,e.id AS payment_event_id
+        ), eligible_booking AS (
+          SELECT b.id,b.publisher_id,b.amount_minor,e.id AS payment_event_id
+          FROM bookings b JOIN valid_event e ON e.booking_id=b.id
+          WHERE b.status='paid'
+        ), earnings_insert AS (
+          INSERT INTO publisher_earnings
+            (payment_event_id,booking_id,publisher_id,gross_amount_minor,commission_bps,commission_amount_minor,net_amount_minor,status)
+          SELECT payment_event_id,id,publisher_id,amount_minor,${commissionBps},
+            round(amount_minor * ${commissionBps}::numeric / 10000)::bigint,
+            amount_minor - round(amount_minor * ${commissionBps}::numeric / 10000)::bigint,
+            'pending'
+          FROM eligible_booking
+          ON CONFLICT (payment_event_id) DO NOTHING
+          RETURNING id
+        )
+        SELECT (SELECT count(*) FROM valid_event)::int AS valid_events,
+               (SELECT count(*) FROM eligible_booking)::int AS paid_bookings,
+               (SELECT count(*) FROM earnings_insert)::int AS earnings_created
+      `;
+      if (!processed[0]?.valid_events) return json({ received: true, duplicate: true });
+      if (!processed[0]?.paid_bookings) return json({ received: true, review_required: true });
       await sql`INSERT INTO audit_logs (action, entity_type, entity_id, details) VALUES ('paystack_charge_success','payment',${payment.id},${JSON.stringify({ reference, amount, currency })}::jsonb)`;
       return json({ received: true });
     } catch (error) {
