@@ -43,13 +43,9 @@ async function handler(request) {
       INSERT INTO payout_request_items(payout_request_id,earning_id)
       SELECT request_row.id, locked.id FROM request_row CROSS JOIN locked
       RETURNING earning_id
-    ), reserved AS (
-      UPDATE publisher_earnings SET status='reserved', updated_at=now()
-      WHERE id IN (SELECT earning_id FROM linked) AND status='available'
-      RETURNING id
     )
     SELECT request_row.* FROM request_row
-    WHERE (SELECT count(*) FROM reserved)=(SELECT count(*) FROM locked)`;
+    WHERE (SELECT count(*) FROM linked)=(SELECT count(*) FROM locked)`;
     if (!created.length) return json({ error: 'Insufficient available balance. For now, withdrawals must equal the full available balance.' }, 409);
     await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},'payout_requested','payout_request',${created[0].id},${JSON.stringify({ amount_minor: amountMinor })}::jsonb)`;
     return json({ payout_request: created[0] }, 201);
