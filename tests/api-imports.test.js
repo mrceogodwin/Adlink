@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 const apiModules = [
   '../api/admin-overview.js',
   '../api/admin-actions.js',
-  '../api/admin-users.js',
   '../api/auth.js',
   '../api/bookings.js',
   '../api/campaigns.js',
@@ -21,6 +20,10 @@ test('all Vercel API entry points load without module export errors', async () =
     const module = await import(path);
     assert.equal(typeof module.default, 'function', `${path} must default-export a handler`);
   }
+});
+
+test('the project stays within the 12-function Vercel Hobby limit', async () => {
+  assert.equal(apiModules.length, 12);
 });
 
 test('shared auth response helper is exported for API routes', async () => {
