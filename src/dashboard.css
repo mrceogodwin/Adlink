@@ -25,3 +25,17 @@
 @media(max-width:480px){.dash-modal{padding:24px 18px}.dash-modal-two{grid-template-columns:1fr}}
 
 .dash-booking-actions{display:flex;gap:6px;align-items:center;margin-left:auto}.dash-booking-actions button,.dash-checkout-button{border:1px solid #dce5d2;background:#f7faf3;color:#3f6632;border-radius:6px;padding:8px 10px;font-size:10px;font-weight:700;cursor:pointer}.dash-booking-actions button:last-child{border-color:#ecd9d5;background:#fff8f7;color:#9a4d40}.dash-checkout-button{background:#20251e;color:#fff;border-color:#20251e;margin-left:auto;white-space:nowrap}@media(max-width:520px){.dash-booking-actions{width:100%}.dash-booking-actions button{flex:1}.dash-checkout-button{margin-left:0}}
+
+/* Prevent iOS Safari from zooming the page when a form field receives focus. */
+@media (max-width: 680px) {
+  input,
+  select,
+  textarea,
+  .auth-form input,
+  .auth-form select,
+  .dash-modal-form input,
+  .dash-modal-form select,
+  .dash-modal-form textarea {
+    font-size: 16px !important;
+  }
+}
