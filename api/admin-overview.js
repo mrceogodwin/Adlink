@@ -7,7 +7,7 @@ async function handler(request) {
   if (auth.error) return auth.error;
   try {
     const sql = db();
-    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments] = await Promise.all([
+    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth] = await Promise.all([
       sql`SELECT
         (SELECT count(*)::int FROM profiles) AS users,
         (SELECT count(*)::int FROM profiles WHERE role='advertiser') AS advertisers,
@@ -24,9 +24,10 @@ async function handler(request) {
       sql`SELECT action, entity_type, entity_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 50`,
       sql`SELECT id, display_name, email, role, status, created_at FROM profiles ORDER BY created_at DESC LIMIT 50`,
       sql`SELECT b.id, b.status, b.amount_minor, b.currency, b.created_at, a.display_name AS advertiser_name, a.email AS advertiser_email, pp.business_name AS publisher_name, pl.title AS placement_title FROM bookings b JOIN profiles a ON a.id=b.advertiser_id JOIN publisher_profiles pp ON pp.id=b.publisher_id JOIN placements pl ON pl.id=b.placement_id ORDER BY b.created_at DESC LIMIT 50`,
-      sql`SELECT pe.id, pe.provider, pe.provider_reference, pe.amount_minor, pe.currency, pe.status, pe.verified_at, pe.created_at, b.id AS booking_id, p.email AS advertiser_email FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id JOIN profiles p ON p.id=b.advertiser_id ORDER BY pe.created_at DESC LIMIT 50`
+      sql`SELECT pe.id, pe.provider, pe.provider_reference, pe.amount_minor, pe.currency, pe.status, pe.verified_at, pe.created_at, b.id AS booking_id, p.email AS advertiser_email FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id JOIN profiles p ON p.id=b.advertiser_id ORDER BY pe.created_at DESC LIMIT 100`,
+      sql`SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month_key, to_char(date_trunc('month', created_at), 'Mon YYYY') AS month_label, coalesce(sum(amount_minor),0)::bigint AS amount_minor, count(*)::int AS transactions FROM payment_events WHERE status='successful' AND created_at >= date_trunc('month', now()) - interval '5 months' GROUP BY date_trunc('month', created_at) ORDER BY date_trunc('month', created_at) ASC`
     ]);
-    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments });
+    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth });
   } catch (error) {
     console.error('Admin overview query failed', { message: error?.message, code: error?.code });
     return json({ error: 'Could not load owner dashboard data.' }, 500);
