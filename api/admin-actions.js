@@ -38,25 +38,35 @@ async function handler(request) {
       if (action === 'mark_paid') {
         const reference = String(body.payout_reference || '').trim();
         if (reference.length < 4 || reference.length > 120) return json({ error: 'Enter a valid bank or transfer reference before marking paid.' }, 400);
-        rows = await sql`WITH item_status AS (
-          SELECT pr.id,
-            count(pri.earning_id)::int AS item_count,
-            count(pe.id) FILTER (WHERE pe.status='available')::int AS available_count
-          FROM payout_requests pr
-          JOIN payout_request_items pri ON pri.payout_request_id=pr.id
-          LEFT JOIN publisher_earnings pe ON pe.id=pri.earning_id
-          WHERE pr.id=${id}
-          GROUP BY pr.id
+        rows = await sql`WITH locked_items AS MATERIALIZED (
+          SELECT pri.payout_request_id, pe.id, pe.status, pe.net_amount_minor
+          FROM payout_request_items pri
+          JOIN publisher_earnings pe ON pe.id=pri.earning_id
+          WHERE pri.payout_request_id=${id}
+          ORDER BY pe.id
+          FOR UPDATE OF pe
+        ), item_status AS MATERIALIZED (
+          SELECT payout_request_id,
+            count(*)::int AS item_count,
+            count(*) FILTER (WHERE status='available')::int AS available_count,
+            coalesce(sum(net_amount_minor),0)::bigint AS linked_amount_minor
+          FROM locked_items
+          GROUP BY payout_request_id
         ), paid_request AS (
-          UPDATE payout_requests SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now()
-          WHERE id=${id} AND status='approved'
-            AND EXISTS (SELECT 1 FROM item_status WHERE item_count > 0 AND item_count=available_count)
-          RETURNING id, amount_minor, status, payout_reference, paid_at
+          UPDATE payout_requests pr SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now()
+          WHERE pr.id=${id} AND pr.status='approved'
+            AND EXISTS (
+              SELECT 1 FROM item_status s
+              WHERE s.payout_request_id=pr.id AND s.item_count > 0
+                AND s.item_count=s.available_count
+                AND s.linked_amount_minor=pr.amount_minor
+            )
+          RETURNING pr.id, pr.amount_minor, pr.status, pr.payout_reference, pr.paid_at
         ), settled AS (
-          UPDATE publisher_earnings SET status='paid', updated_at=now()
-          WHERE status='available'
-            AND id IN (SELECT pri.earning_id FROM payout_request_items pri JOIN paid_request pr ON pr.id=pri.payout_request_id)
-          RETURNING id
+          UPDATE publisher_earnings pe SET status='paid', updated_at=now()
+          WHERE pe.status='available'
+            AND pe.id IN (SELECT li.id FROM locked_items li JOIN paid_request pr ON pr.id=li.payout_request_id)
+          RETURNING pe.id
         )
         SELECT paid_request.* FROM paid_request
         WHERE (SELECT count(*) FROM settled)=(SELECT item_count FROM item_status)`;
