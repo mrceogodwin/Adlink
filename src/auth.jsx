@@ -12,6 +12,8 @@ export default function AuthPage() {
   const [role, setRole] = useState(initialRole);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const googleError = new URLSearchParams(window.location.search).get('google_error');
+  function continueWithGoogle() { window.location.assign('/api/auth/google?role=' + encodeURIComponent(role)); }
 
   async function submit(event) {
     event.preventDefault();
@@ -47,9 +49,11 @@ export default function AuthPage() {
         <label>Email address<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" /></label>
         <label>Password<input type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={mode === 'register' ? 12 : 1} maxLength={200} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode === 'register' ? 'At least 12 characters' : 'Your password'} /></label>
         {mode === 'register' && <label>Account type<select value={role} onChange={e=>setRole(e.target.value)}><option value="advertiser">Advertiser — book placements</option><option value="publisher">Publisher — list your audience</option></select></label>}
+        {googleError && <div className="auth-error" role="alert">{googleError}</div>}
         {error && <div className="auth-error" role="alert">{error}</div>}
         <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : isAdminLogin ? 'Sign in to admin console' : mode === 'register' ? 'Create my account ' : 'Log in securely '}</button>
       </form>
+      {!isAdminLogin && <><div className="auth-divider"><span>OR CONTINUE WITH</span></div>{mode === 'login' && <label className="google-role-label">Account type for new Google accounts<select value={role} onChange={e=>setRole(e.target.value)}><option value="advertiser">Advertiser — book placements</option><option value="publisher">Publisher — list your audience</option></select></label>}<button type="button" className="google-auth-button" onClick={continueWithGoogle}><strong>G</strong> Continue with Google</button></>}
       <p className="auth-legal">{isAdminLogin ? 'Private area. Access is granted only to an active account with the super_admin role verified by Adlink servers.' : 'Your password is stored as a one-way hash. Admin access cannot be requested through public registration.'}</p>
     </section>
     <a className="auth-home-link" href="/">← Back to marketplace</a>
