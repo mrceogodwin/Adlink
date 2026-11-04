@@ -5,6 +5,10 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/api/admin-users",
+      "destination": "/api/admin-actions?action=users"
+    },
+    {
       "source": "/api/paystack/webhook",
       "destination": "/api/payments?action=webhook"
     },
