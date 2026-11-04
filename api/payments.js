@@ -62,9 +62,12 @@ async function handler(request) {
           WHERE b.id=e.booking_id AND b.status='awaiting_payment'
           RETURNING b.id,b.publisher_id,b.amount_minor,e.id AS payment_event_id
         ), eligible_booking AS (
+          SELECT id,publisher_id,amount_minor,payment_event_id FROM booking_paid
+          UNION ALL
           SELECT b.id,b.publisher_id,b.amount_minor,e.id AS payment_event_id
           FROM bookings b JOIN valid_event e ON e.booking_id=b.id
           WHERE b.status='paid'
+            AND NOT EXISTS (SELECT 1 FROM booking_paid bp WHERE bp.id=b.id)
         ), earnings_insert AS (
           INSERT INTO publisher_earnings
             (payment_event_id,booking_id,publisher_id,gross_amount_minor,commission_bps,commission_amount_minor,net_amount_minor,status)
