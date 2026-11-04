@@ -43,7 +43,6 @@ async function handler(request) {
       INSERT INTO payout_request_items(payout_request_id,earning_id)
       SELECT request_row.id, locked.id FROM request_row CROSS JOIN locked
       RETURNING earning_id
-    ), reserved AS (
     )
     SELECT request_row.* FROM request_row WHERE (SELECT count(*) FROM linked)=(SELECT count(*) FROM locked)`;
     if (!created.length) return json({ error: 'Insufficient available balance. For now, withdrawals must equal the full available balance.' }, 409);
