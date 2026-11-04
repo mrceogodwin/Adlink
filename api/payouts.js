@@ -27,11 +27,14 @@ async function handler(request) {
     if (!Number.isSafeInteger(amountMinor) || amountMinor < 100) return json({ error: 'Enter a withdrawal amount of at least ₦1.00.' }, 400);
     const profile = await sql`SELECT id FROM publisher_profiles WHERE profile_id=${auth.profile.id} AND verification_status='verified' LIMIT 1`;
     if (!profile.length) return json({ error: 'A verified publisher profile is required to request a payout.' }, 403);
-    const created = await sql`WITH locked AS MATERIALIZED (
-      SELECT id, net_amount_minor FROM publisher_earnings
-      WHERE publisher_id=${profile[0].id} AND status='available' AND NOT EXISTS (SELECT 1 FROM payout_request_items pri JOIN payout_requests pr ON pr.id=pri.payout_request_id WHERE pri.earning_id=publisher_earnings.id AND pr.status IN ('requested','approved','processing'))
-      ORDER BY available_at NULLS LAST, created_at, id
-      FOR UPDATE
+    const created = await sql`WITH publisher_lock AS MATERIALIZED (
+      SELECT pg_advisory_xact_lock(hashtextextended(${profile[0].id}::text, 0)) AS acquired
+    ), locked AS MATERIALIZED (
+      SELECT pe.id, pe.net_amount_minor FROM publisher_earnings pe
+      CROSS JOIN publisher_lock
+      WHERE pe.publisher_id=${profile[0].id} AND pe.status='available' AND NOT EXISTS (SELECT 1 FROM payout_request_items pri JOIN payout_requests pr ON pr.id=pri.payout_request_id WHERE pri.earning_id=pe.id AND pr.status IN ('requested','approved','processing'))
+      ORDER BY pe.available_at NULLS LAST, pe.created_at, pe.id
+      FOR UPDATE OF pe
     ), total AS (
       SELECT coalesce(sum(net_amount_minor),0)::bigint AS amount_minor FROM locked
     ), request_row AS (
