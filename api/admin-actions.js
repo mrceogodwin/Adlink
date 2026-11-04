@@ -36,13 +36,29 @@ async function handler(request) {
       if (action === 'mark_paid') {
         const reference = String(body.payout_reference || '').trim();
         if (reference.length < 4 || reference.length > 120) return json({ error: 'Enter a valid bank or transfer reference before marking paid.' }, 400);
-        rows = await sql`UPDATE payout_requests SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='approved' RETURNING id, amount_minor, status, payout_reference, paid_at`;
-        if (rows.length) await sql`UPDATE publisher_earnings SET status='paid', updated_at=now() WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id=${id}) AND status='pending'`;
+        rows = await sql`WITH paid_request AS (
+          UPDATE payout_requests SET status='paid', payout_reference=${reference}, paid_at=now(), reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now()
+          WHERE id=${id} AND status='approved'
+          RETURNING id, amount_minor, status, payout_reference, paid_at
+        ), settled AS (
+          UPDATE publisher_earnings SET status='paid', updated_at=now()
+          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM paid_request)) AND status='pending'
+          RETURNING id
+        )
+        SELECT paid_request.* FROM paid_request WHERE (SELECT count(*) FROM settled)=(SELECT count(*) FROM payout_request_items WHERE payout_request_id=paid_request.id)`;
+      } else if (action === 'approve') {
+        rows = await sql`UPDATE payout_requests SET status='approved', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`;
       } else {
-        rows = action === 'approve'
-          ? await sql`UPDATE payout_requests SET status='approved', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`
-          : await sql`UPDATE payout_requests SET status='rejected', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now() WHERE id=${id} AND status='requested' RETURNING id, amount_minor, status`;
-        if (rows.length && action === 'reject') await sql`UPDATE publisher_earnings SET status='available', updated_at=now() WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id=${id}) AND status='pending'`;
+        rows = await sql`WITH rejected AS (
+          UPDATE payout_requests SET status='rejected', reviewed_by=${auth.profile.id}, reviewed_at=now(), updated_at=now()
+          WHERE id=${id} AND status='requested'
+          RETURNING id, amount_minor, status
+        ), released AS (
+          UPDATE publisher_earnings SET status='available', updated_at=now()
+          WHERE id IN (SELECT earning_id FROM payout_request_items WHERE payout_request_id IN (SELECT id FROM rejected)) AND status='pending'
+          RETURNING id
+        )
+        SELECT rejected.* FROM rejected WHERE (SELECT count(*) FROM released)=(SELECT count(*) FROM payout_request_items WHERE payout_request_id=rejected.id)`;
       }
     }
     if (!rows.length) return json({ error: 'Record was not found in the expected status. Refresh and try again.' }, 409);
