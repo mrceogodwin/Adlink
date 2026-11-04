@@ -24,10 +24,11 @@ async function handler(request) {
     try {
       const event = JSON.parse(raw);
       if (event.event !== 'charge.success') return json({ received: true });
+      if (event.data?.status !== 'success') return json({ error: 'Payment has not been confirmed successful.' }, 400);
       const reference = String(event.data?.reference || '');
       const amount = Number(event.data?.amount);
       const currency = String(event.data?.currency || '');
-      if (!reference || !Number.isSafeInteger(amount) || amount < 0 || currency !== 'NGN') return json({ error: 'Invalid payment event.' }, 400);
+      if (!reference || !Number.isSafeInteger(amount) || amount < 100 || currency !== 'NGN') return json({ error: 'Invalid payment event.' }, 400);
       const sql = db();
       const rows = await sql`SELECT id, booking_id, amount_minor, currency, status FROM payment_events WHERE provider='paystack' AND provider_reference=${reference} LIMIT 1`;
       if (!rows.length) return json({ received: true, ignored: true });
@@ -36,8 +37,9 @@ async function handler(request) {
         await sql`UPDATE payment_events SET status='failed', provider_payload=${JSON.stringify(event.data || {})}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
         return json({ error: 'Payment amount or currency mismatch.' }, 400);
       }
-      await sql`UPDATE payment_events SET status='successful', verified_at=now(), provider_payload=${JSON.stringify(event.data || {})}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
-      await sql`UPDATE bookings SET status='paid', updated_at=now() WHERE id=${payment.booking_id} AND status='awaiting_payment' AND EXISTS (SELECT 1 FROM payment_events WHERE id=${payment.id} AND status='successful' AND verified_at IS NOT NULL)`;
+      const confirmed = await sql`UPDATE payment_events SET status='successful', verified_at=now(), provider_payload=${JSON.stringify(event.data || {})}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending') RETURNING id`;
+      if (!confirmed.length) return json({ received: true, duplicate: true });
+      await sql`UPDATE bookings SET status='paid', updated_at=now() WHERE id=${payment.booking_id} AND status='awaiting_payment'`;
       await sql`INSERT INTO audit_logs (action, entity_type, entity_id, details) VALUES ('paystack_charge_success','payment',${payment.id},${JSON.stringify({ reference, amount, currency })}::jsonb)`;
       return json({ received: true });
     } catch (error) {
