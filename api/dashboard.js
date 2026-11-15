@@ -22,7 +22,7 @@ async function handler(request) {
     }
     if (user.role === 'publisher') {
       const rows = await sql`
-        SELECT pp.id AS publisher_id, pp.business_name, pp.verification_status,
+        SELECT pp.id AS publisher_id, pp.business_name, pp.verification_status, pp.verification_review_note,
           (SELECT count(*)::int FROM placements p WHERE p.publisher_id = pp.id) AS placements,
           (SELECT count(*)::int FROM placements p WHERE p.publisher_id = pp.id AND p.status = 'published') AS published_placements,
           (SELECT count(*)::int FROM bookings b WHERE b.publisher_id = pp.id) AS bookings,
