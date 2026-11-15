@@ -14,7 +14,7 @@ export default function ResetPassword() {
     if (password !== confirm) { setError('The passwords do not match.'); return; }
     setBusy(true);
     try {
-      const response = await fetch('/api/auth/password-reset',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({token,password})});
+      const response = await fetch('/api/auth?action=password-reset',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({token,password})});
       const result = await response.json().catch(()=>({}));
       if (!response.ok) throw new Error(result.error || 'Could not reset password.');
       setDone(true);
