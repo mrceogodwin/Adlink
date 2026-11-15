@@ -19,7 +19,7 @@ async function handler(request) {
         (SELECT count(*)::int FROM campaigns) AS campaigns,
         (SELECT coalesce(sum(amount_minor),0)::bigint FROM payment_events WHERE status='successful') AS payment_volume_minor
       `,
-      sql`SELECT pp.id, pp.business_name, pp.verification_status, pp.created_at, p.email, p.display_name FROM publisher_profiles pp JOIN profiles p ON p.id=pp.profile_id WHERE pp.verification_status IN ('unverified','pending') ORDER BY pp.created_at ASC LIMIT 12`,
+      sql`SELECT pp.id, pp.business_name, pp.verification_status, pp.verification_platform, pp.verification_handle, pp.verification_url, pp.verification_note, pp.verification_submitted_at, pp.created_at, p.email, p.display_name FROM publisher_profiles pp JOIN profiles p ON p.id=pp.profile_id WHERE pp.verification_status IN ('unverified','pending') ORDER BY pp.created_at ASC LIMIT 12`,
       sql`SELECT p.id, p.title, p.platform, p.category, p.created_at, pp.business_name FROM placements p JOIN publisher_profiles pp ON pp.id=p.publisher_id WHERE p.status='pending_review' ORDER BY p.created_at ASC LIMIT 12`,
       sql`SELECT action, entity_type, entity_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 50`,
       sql`SELECT id, display_name, email, role, status, created_at FROM profiles ORDER BY created_at DESC LIMIT 50`,
