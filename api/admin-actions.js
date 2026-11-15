@@ -23,9 +23,10 @@ async function handler(request) {
     const sql = db();
     let rows;
     if (entity === 'publisher') {
+      const reviewNote = String(body.review_note || '').trim().slice(0,1000);
       rows = action === 'approve'
-        ? await sql`UPDATE publisher_profiles SET verification_status='verified', updated_at=now() WHERE id=${id} AND verification_status IN ('unverified','pending') RETURNING id, business_name, verification_status`
-        : await sql`UPDATE publisher_profiles SET verification_status='rejected', updated_at=now() WHERE id=${id} AND verification_status IN ('unverified','pending') RETURNING id, business_name, verification_status`;
+        ? await sql`UPDATE publisher_profiles SET verification_status='verified', verification_review_note=${reviewNote}, verification_reviewed_at=now(), updated_at=now() WHERE id=${id} AND verification_status IN ('unverified','pending') RETURNING id, business_name, verification_status`
+        : await sql`UPDATE publisher_profiles SET verification_status='rejected', verification_review_note=${reviewNote}, verification_reviewed_at=now(), updated_at=now() WHERE id=${id} AND verification_status IN ('unverified','pending') RETURNING id, business_name, verification_status`;
     } else if (entity === 'placement') {
       rows = action === 'approve'
         ? await sql`UPDATE placements p SET status='published', verified_at=now(), updated_at=now() FROM publisher_profiles pp WHERE p.id=${id} AND p.publisher_id=pp.id AND pp.verification_status='verified' AND p.status='pending_review' RETURNING p.id, p.title, p.status`
