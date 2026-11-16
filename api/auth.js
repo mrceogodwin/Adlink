@@ -7,10 +7,11 @@ import me from '../lib/auth-routes/me.js';
 import googleStart from '../lib/auth-routes/google-start.js';
 import googleCallback from '../lib/auth-routes/google-callback.js';
 import passwordReset from '../lib/auth-routes/password-reset.js';
+import requestPasswordReset from '../lib/auth-routes/request-password-reset.js';
 
 // Keep all auth actions in one Vercel function to stay within the Hobby-plan
 // function limit. Existing /api/auth/<action> URLs are rewritten in vercel.json.
-const handlers = { login, register, logout, me, google: googleStart, 'google-callback': googleCallback, 'password-reset': passwordReset };
+const handlers = { login, register, logout, me, google: googleStart, 'google-callback': googleCallback, 'password-reset': passwordReset, 'request-password-reset': requestPasswordReset };
 
 async function handler(request) {
   const url = new URL(request.url);
