@@ -84,8 +84,18 @@ async function handler(request) {
           updated_at=now()
         FROM evidence_update e WHERE b.id=e.booking_id
         RETURNING b.id,b.status,b.completed_at
+      ), earnings_release AS (
+        -- Earnings become withdrawable only after the advertiser approves delivery.
+        UPDATE publisher_earnings pe
+        SET status='available', available_at=now(), updated_at=now()
+        FROM booking_update b
+        WHERE pe.booking_id=b.id
+          AND b.status='completed'
+          AND pe.status='pending'
+        RETURNING pe.id
       )
-      SELECT evidence_update.*,booking_update.status AS booking_status,booking_update.completed_at
+      SELECT evidence_update.*,booking_update.status AS booking_status,booking_update.completed_at,
+        (SELECT count(*)::int FROM earnings_release) AS earnings_released
       FROM evidence_update JOIN booking_update ON booking_update.id=evidence_update.booking_id`;
       if (!reviewed.length) return json({ error: 'No delivery submission is awaiting your review for this booking.' }, 409);
       await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},${decision === 'approve' ? 'delivery_approved' : 'delivery_rejected'},'booking',${bookingId},${JSON.stringify({ evidence_id: reviewed[0].id, review_note: reviewNote })}::jsonb)`;
