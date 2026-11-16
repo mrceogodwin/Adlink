@@ -34,7 +34,7 @@ async function handler(request) {
       }
       const updated = await sql`UPDATE publisher_profiles SET profile_image_url=${imageUrl || null}, updated_at=now() WHERE profile_id=${auth.profile.id} RETURNING profile_image_url`;
       if (!updated.length) return json({ error: 'Publisher profile not found.' }, 404);
-      await sql`INSERT INTO audit_logs (actor_profile_id, action, entity_type, entity_id, details) SELECT ${auth.profile.id}, 'update_profile_image', 'publisher', id::text, '${JSON.stringify({ has_image: Boolean(imageUrl) })}'::jsonb FROM publisher_profiles WHERE profile_id=${auth.profile.id}`;
+      await sql`INSERT INTO audit_logs (actor_profile_id, action, entity_type, entity_id, details) SELECT ${auth.profile.id}, 'update_profile_image', 'publisher', id::text, ${JSON.stringify({ has_image: Boolean(imageUrl) })}::jsonb FROM publisher_profiles WHERE profile_id=${auth.profile.id}`;
       return json({ profile_image_url: updated[0].profile_image_url });
     }
     if (body.action === 'submit_verification') {
