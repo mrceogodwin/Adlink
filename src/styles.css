@@ -79,10 +79,10 @@
   main{display:flex;flex-direction:column}
   main>.hero{order:1}
   main>.trust-strip{order:2}
-  main>.how-section{order:3}
-  main>.campaign-showcase{order:4}
-  main>.publisher-cta{order:5}
-  main>.market-section{order:6}
+  main>.market-section{order:3}
+  main>.how-section{order:4}
+  main>.campaign-showcase{order:5}
+  main>.publisher-cta{order:6}
   main>.bottom-note{order:7}
   .how-section{padding:34px 18px 30px;background:#fff;display:block;border-top:0}
   .how-intro .eyebrow{font-size:8px}
@@ -126,3 +126,28 @@
   .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
 }
 @media(min-width:681px){.mobile-hero-search,.mobile-bottom-nav{display:none!important}}
+
+/* Mobile marketplace prioritises discovery immediately after the hero */
+@media(max-width:680px){
+  .market-section{padding-top:34px;padding-bottom:35px}
+  .section-heading{margin-bottom:18px}
+  .section-heading h2{font-size:34px;line-height:1.08;margin:12px 0 7px}
+  .section-heading p{font-size:10px;line-height:1.55}
+  .market-layout{display:flex;flex-direction:column;gap:12px}
+  .filters{width:100%;padding:12px;border-radius:12px;background:#fff;border:1px solid #e5ebdf}
+  .filter-top{padding-bottom:9px;margin-bottom:8px}
+  .filter-group{padding-top:9px;margin-top:8px}
+  .filter-group:first-of-type{display:flex;flex-wrap:wrap}
+  .filter-group:first-of-type .filter-option{flex:1 0 28%;min-height:34px;justify-content:center;border:1px solid #edf0e9;font-size:9px}
+  .filter-group:not(:first-of-type){display:block}
+  .filter-label{font-size:9px;margin-bottom:6px}
+  .filter-option{font-size:9px;padding:7px 8px}
+  .filter-group select,.results-toolbar select{font-size:10px;min-height:36px}
+  .budget-title strong{font-size:10px}
+  .results-toolbar{font-size:9px;gap:8px;flex-wrap:wrap}
+  .placement-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .placement-card{border-radius:11px;padding:11px}
+  .placement-description{min-height:56px}
+  .mobile-bottom-nav small{font-size:7px}
+}
+@media(max-width:380px){.placement-grid{grid-template-columns:1fr}}
