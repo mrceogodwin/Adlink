@@ -98,7 +98,7 @@ async function handler(request) {
         (SELECT count(*)::int FROM earnings_release) AS earnings_released
       FROM evidence_update JOIN booking_update ON booking_update.id=evidence_update.booking_id`;
       if (!reviewed.length) return json({ error: 'No delivery submission is awaiting your review for this booking.' }, 409);
-      await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},${decision === 'approve' ? 'delivery_approved' : 'delivery_rejected'},'booking',${bookingId},${JSON.stringify({ evidence_id: reviewed[0].id, review_note: reviewNote })}::jsonb)`;
+      await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},${decision === 'approve' ? 'delivery_approved' : 'delivery_rejected'},'booking',${bookingId},${JSON.stringify({ evidence_id: reviewed[0].id, review_note: reviewNote, earnings_released: reviewed[0].earnings_released || 0 })}::jsonb)`;
       return json({ review: reviewed[0] });
     }
 
