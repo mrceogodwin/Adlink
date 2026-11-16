@@ -7,7 +7,7 @@ async function handler(request) {
   if (auth.error) return auth.error;
   try {
     const sql = db();
-    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles, earningsSummary, payoutRequests, commissionSetting] = await Promise.all([
+    const [stats, pendingPublishers, pendingPlacements, recentAudit, users, recentCampaigns, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles, earningsSummary, payoutRequests, commissionSetting] = await Promise.all([
       sql`SELECT
         (SELECT count(*)::int FROM profiles) AS users,
         (SELECT count(*)::int FROM profiles WHERE role='advertiser') AS advertisers,
@@ -23,6 +23,7 @@ async function handler(request) {
       sql`SELECT p.id, p.title, p.platform, p.category, p.created_at, pp.business_name FROM placements p JOIN publisher_profiles pp ON pp.id=p.publisher_id WHERE p.status='pending_review' ORDER BY p.created_at ASC LIMIT 12`,
       sql`SELECT action, entity_type, entity_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 50`,
       sql`SELECT id, display_name, email, role, status, created_at FROM profiles ORDER BY created_at DESC LIMIT 50`,
+      sql`SELECT c.id, c.name, c.objective, c.budget_minor, c.currency, c.status, c.start_date, c.end_date, c.created_at, p.display_name AS advertiser_name, p.email AS advertiser_email, (SELECT count(*)::int FROM bookings b WHERE b.campaign_id=c.id) AS bookings_count FROM campaigns c JOIN profiles p ON p.id=c.advertiser_id ORDER BY c.created_at DESC LIMIT 50`,
       sql`SELECT b.id, b.status, b.amount_minor, b.currency, b.created_at, a.display_name AS advertiser_name, a.email AS advertiser_email, pp.business_name AS publisher_name, pl.title AS placement_title FROM bookings b JOIN profiles a ON a.id=b.advertiser_id JOIN publisher_profiles pp ON pp.id=b.publisher_id JOIN placements pl ON pl.id=b.placement_id ORDER BY b.created_at DESC LIMIT 50`,
       sql`SELECT pe.id, pe.provider, pe.provider_reference, pe.amount_minor, pe.currency, pe.status, pe.verified_at, pe.created_at, b.id AS booking_id, p.email AS advertiser_email FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id JOIN profiles p ON p.id=b.advertiser_id ORDER BY pe.created_at DESC LIMIT 100`,
       sql`SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month_key, to_char(date_trunc('month', created_at), 'Mon YYYY') AS month_label, coalesce(sum(amount_minor),0)::bigint AS amount_minor, count(*)::int AS transactions FROM payment_events WHERE status='successful' AND created_at >= date_trunc('month', now()) - interval '5 months' GROUP BY date_trunc('month', created_at) ORDER BY date_trunc('month', created_at) ASC`,
@@ -31,7 +32,7 @@ async function handler(request) {
       sql`SELECT pr.id, pr.amount_minor, pr.currency, pr.status, pr.requested_at, pr.admin_note, pp.business_name, p.email FROM payout_requests pr JOIN publisher_profiles pp ON pp.id=pr.publisher_id JOIN profiles p ON p.id=pp.profile_id ORDER BY pr.requested_at DESC LIMIT 100`,
       sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`
     ]);
-    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles, earningsSummary, payoutRequests, commissionBps: Number(commissionSetting[0]?.setting_value ?? 1500) });
+    return json({ profile: auth.profile, stats: stats[0], pendingPublishers, pendingPlacements, recentAudit, users, recentCampaigns, recentBookings, recentPayments, revenueByMonth, publisherPayoutProfiles, earningsSummary, payoutRequests, commissionBps: Number(commissionSetting[0]?.setting_value ?? 1500) });
   } catch (error) {
     console.error('Admin overview query failed', { message: error?.message, code: error?.code });
     return json({ error: 'Could not load owner dashboard data.' }, 500);
