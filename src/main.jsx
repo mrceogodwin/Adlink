@@ -98,7 +98,6 @@ function App(){
           <div className="community-orbit community-orbit-one"></div>
           <div className="community-orbit community-orbit-two"></div>
           <div className="community-glow"></div>
-          <img className="hero-community-image" src="/adlink-community-hero.webp" alt="" fetchPriority="high"/>
           <div className="community-floating-note"><span>●</span> A community of possibilities</div>
         </div>
       </section>
