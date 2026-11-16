@@ -38,7 +38,7 @@ async function handler(request) {
     if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return json({ error: 'Invalid start date.' }, 400);
     if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return json({ error: 'Invalid end date.' }, 400);
     if (startDate && endDate && endDate < startDate) return json({ error: 'End date cannot be before the start date.' }, 400);
-    const rows = await sql`INSERT INTO campaigns (advertiser_id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode) VALUES (${auth.profile.id}, ${name}, ${objective}, ${brief}, ${Math.round(budget * 100)}, 'NGN', ${startDate}, ${endDate}, ${campaignMode === 'managed' ? 'submitted' : 'draft'}, ${campaignMode}) RETURNING id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode, created_at`;
+    const rows = await sql`INSERT INTO campaigns (advertiser_id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode, managed_review_status) VALUES (${auth.profile.id}, ${name}, ${objective}, ${brief}, ${Math.round(budget * 100)}, 'NGN', ${startDate}, ${endDate}, ${campaignMode === 'managed' ? 'submitted' : 'draft'}, ${campaignMode}, ${campaignMode === 'managed' ? 'pending' : 'not_applicable'}) RETURNING id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode, managed_review_status, created_at`;
     return json({ campaign: rows[0] }, 201);
   } catch (error) {
     console.error('Campaign creation failed', { message: error?.message, code: error?.code });
