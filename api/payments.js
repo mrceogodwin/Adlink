@@ -24,7 +24,7 @@ async function recordSuccessfulBachsPayment(sql, payment, event) {
   const amountMinor = parseBachsAmountMinor(event.data?.amount);
   const currency = String(event.data?.currency || '').toUpperCase();
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || amountMinor !== Number(payment.amount_minor) || amountMinor !== Number(payment.booking_amount_minor) || currency !== String(payment.currency || '').toUpperCase() || currency !== String(payment.booking_currency || '').toUpperCase()) {
-    await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_error: 'amount_or_currency_mismatch', event_id: event.id })}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
+    await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_error: 'amount_or_currency_mismatch', webhook_event_id: event.id })}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
     return { mismatch: true };
   }
   const settings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
