@@ -78,9 +78,28 @@ function App(){
     <div className="announcement"><span className="announcement-dot"></span> Your next campaign starts with the right audience <span className="announcement-link">Explore the marketplace <span></span></span></div>
     <header className="site-header"><div className="header-inner"><Logo/><nav id="primary-navigation" className={`main-nav ${mobileMenuOpen ? 'is-open' : ''}`}><a className="active" href="#marketplace" onClick={()=>setMobileMenuOpen(false)}>Marketplace</a><a href="#how-it-works" onClick={()=>setMobileMenuOpen(false)}>How it works</a><a href="#for-publishers" onClick={()=>setMobileMenuOpen(false)}>For publishers</a><a href="/sandbox" onClick={()=>setMobileMenuOpen(false)}>Try sandbox</a><a className="mobile-nav-login" href="/login" onClick={()=>setMobileMenuOpen(false)}>Log in</a><a className="mobile-nav-signup" href="/register" onClick={()=>setMobileMenuOpen(false)}>Create account </a></nav><div className="header-actions"><a className="btn btn-quiet" href="/login">Log in</a><a className="btn btn-dark" href="/register">Get started <span></span></a><button className="mobile-menu" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-controls="primary-navigation" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen ? '×' : '☰'}</button></div></div></header>
     <main>
-      <section className="hero">
-        <div className="hero-copy"><div className="eyebrow"><span className="eyebrow-line"></span> AFRICA’S ADVERTISING MARKETPLACE</div><h1>Good ads find<br/>their <em>people.</em></h1><p className="hero-sub">One place to discover creators, communities and publishers that connect your brand to the people who matter.</p><div className="hero-cta"><a className="btn btn-dark btn-large" href="#marketplace">Explore placements </a><button className="btn btn-outline btn-large" onClick={()=>window.location.assign('/register?role=publisher')}>I’m a publisher <span></span></button><a className="btn btn-outline btn-large" href="/sandbox">Try sandbox <span></span></a></div><div className="hero-proof"><div className="avatar-marquee" aria-label="Verified Adlink publishers">{publisherShowcase.length?<div className="avatar-track">{[...publisherShowcase,...publisherShowcase].map((publisher,index)=><span className="publisher-avatar" key={publisher.id+'-'+index} title={publisher.business_name} aria-label={publisher.business_name}>{(publisher.business_name||'A').trim().slice(0,1).toUpperCase()}{publisher.profile_image_url&&<img src={publisher.profile_image_url} alt="" loading="lazy" referrerPolicy="no-referrer"/>}</span>)}</div>:<span className="avatar-empty">Publisher profiles will appear here</span>}</div><div><strong>Every audience has a place.</strong><small>Discover verified publishers on Adlink.</small></div></div></div>
-        <div className="hero-art"><div className="art-grid"></div><div className="orbit orbit-one"></div><div className="orbit orbit-two"></div><div className="art-center"><AdlinkMark className="art-center-symbol"/><span>THE RIGHT<br/>CONNECTION</span></div><div className="float-card card-reach"><span className="mini-icon green-mini"></span><div><small>Potential reach</small><strong>+82,400</strong></div><span className="up-pill">+18.6%</span></div><div className="float-card card-community"><div className="community-icons"><span>◉</span><span>◌</span></div><div><strong>Everywhere your<br/>audience lives.</strong><small>Social · Web · Communities</small></div></div><div className="art-tag tag-one">Creators</div><div className="art-tag tag-two">Communities</div><div className="art-tag tag-three">Publishers</div></div>
+      <section className="hero hero-community">
+        <div className="hero-copy">
+          <div className="eyebrow"><span className="eyebrow-line"></span> AFRICA’S ADVERTISING MARKETPLACE</div>
+          <h1>Good ads find<br/>their <em>people.</em></h1>
+          <p className="hero-sub">One place to discover creators, communities and publishers that connect your brand to the people who matter.</p>
+          <div className="hero-cta">
+            <a className="btn btn-dark btn-large" href="#marketplace">Explore placements <span></span></a>
+            <button className="btn btn-outline btn-large" onClick={()=>window.location.assign('/register?role=publisher')}>I’m a publisher <span></span></button>
+            <a className="btn btn-outline btn-large" href="/sandbox">Try sandbox <span></span></a>
+          </div>
+          <div className="hero-proof hero-proof-community">
+            <span className="hero-proof-star">✦</span>
+            <div><strong>One marketplace. Every audience.</strong><small>Creators, communities and publishers—connected.</small></div>
+          </div>
+        </div>
+        <div className="hero-art hero-community-art" aria-hidden="true">
+          <div className="community-orbit community-orbit-one"></div>
+          <div className="community-orbit community-orbit-two"></div>
+          <div className="community-glow"></div>
+          <img className="hero-community-image" src="/adlink-community-hero.webp" alt="" fetchPriority="high"/>
+          <div className="community-floating-note"><span>●</span> A community of possibilities</div>
+        </div>
       </section>
       <section className="trust-strip"><span>ONE MARKETPLACE</span><i></i><span>REAL AUDIENCES</span><i></i><span>TRANSPARENT PRICING</span><i></i><span>MADE FOR GROWTH</span></section>
       <section id="marketplace" className="market-section">
