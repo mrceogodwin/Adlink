@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import './hero-community.css';
 import Dashboard from './dashboard.jsx';
 import Admin from './admin.jsx';
 import AuthDialog from './auth-dialog.jsx';
