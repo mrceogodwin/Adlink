@@ -36,3 +36,17 @@
  .main-nav.is-open .mobile-nav-login{display:flex}
  .main-nav.is-open .mobile-nav-signup{display:flex;align-items:center;justify-content:center;margin-top:12px;min-height:43px;border:0;border-radius:7px;background:#173b2b;color:#fff;font-weight:700;font-size:12px}
 }
+
+
+/* Verified publisher photo strip */
+.avatar-marquee{width:108px;max-width:34vw;flex:0 0 108px;overflow:hidden;position:relative;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.avatar-track{display:flex;align-items:center;gap:7px;width:max-content;animation:adlink-publisher-marquee 22s linear infinite}
+.publisher-avatar{position:relative;display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid #f8f8f6;background:#e6eddf;color:#294c34;font-size:11px;font-weight:700}
+.publisher-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-empty{display:block;font-size:9px;line-height:1.45;color:#858b80}
+@keyframes adlink-publisher-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.avatar-marquee:hover .avatar-track{animation-play-state:paused}
+.publisher-card-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.publisher-logo .publisher-social{z-index:1}
+@media(prefers-reduced-motion:reduce){.avatar-track{animation:none}}
+@media(max-width:680px){.avatar-marquee{width:104px;flex-basis:104px}.publisher-avatar{width:32px;height:32px;flex-basis:32px}}
