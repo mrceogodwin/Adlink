@@ -12,6 +12,7 @@ const apiModules = [
   '../api/listings.js',
   '../api/publisher-placements.js',
   '../api/payments.js',
+  '../api/payouts.js',
   '../api/saved-placements.js',
 ];
 
