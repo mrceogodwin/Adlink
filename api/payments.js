@@ -88,14 +88,14 @@ async function handleBachsWebhook(request) {
     const reference = String(event.data?.reference || '');
     if (!checkoutId && !reference) return json({ received: true, ignored: true });
     const sql = db();
-    const rows = await sql\`SELECT id,booking_id,amount_minor,currency,status FROM payment_events
+    const rows = await sql`SELECT id,booking_id,amount_minor,currency,status FROM payment_events
       WHERE provider='bachs' AND (
-        (provider_payload->>'checkout_id'=\${checkoutId} AND \${checkoutId} <> '')
-        OR (provider_reference=\${reference} AND \${reference} <> '')
-      ) LIMIT 1\`;
+        (provider_payload->>'checkout_id'=${checkoutId} AND ${checkoutId} <> '')
+        OR (provider_reference=${reference} AND ${reference} <> '')
+      ) LIMIT 1`;
     if (eventStatus !== 'SUCCEEDED') {
-      if (rows.length) await sql\`UPDATE payment_events SET provider_payload=provider_payload || \${JSON.stringify({ review_required: true, webhook_event_id: event.id, provider_status: eventStatus || 'UNKNOWN' })}::jsonb
-        WHERE id=\${rows[0].id} AND status IN ('initialized','pending')\`;
+      if (rows.length) await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_event_id: event.id, provider_status: eventStatus || 'UNKNOWN' })}::jsonb
+        WHERE id=${rows[0].id} AND status IN ('initialized','pending')`;
       return json({ received: true, review_required: true });
     }
     if (!rows.length) return json({ received: true, ignored: true });
