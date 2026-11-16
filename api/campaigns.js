@@ -12,7 +12,7 @@ async function handler(request) {
   const sql = db();
   if (request.method === 'GET') {
     try {
-      const rows = await sql`SELECT id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode, created_at, updated_at FROM campaigns WHERE advertiser_id = ${auth.profile.id} ORDER BY created_at DESC LIMIT 100`;
+      const rows = await sql`SELECT c.id, c.name, c.objective, c.brief, c.budget_minor, c.currency, c.start_date, c.end_date, c.status, c.campaign_mode, c.managed_review_status, c.managed_review_note, c.managed_progress_status, c.managed_progress_note, c.created_at, c.updated_at, manager.display_name AS managed_manager_name FROM campaigns c LEFT JOIN profiles manager ON manager.id=c.managed_assigned_to WHERE c.advertiser_id = ${auth.profile.id} ORDER BY c.created_at DESC LIMIT 100`;
       return json({ data: rows });
     } catch (error) {
       console.error('Campaign list failed', { message: error?.message });
