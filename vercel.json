@@ -5,6 +5,8 @@
   "installCommand": "npm install",
   "rewrites": [
     { "source": "/reset-password", "destination": "/index.html" },
+    { "source": "/forgot-password", "destination": "/index.html" },
+    { "source": "/api/auth/request-password-reset", "destination": "/api/auth?action=request-password-reset" },
     {
       "source": "/api/auth/google/callback",
       "destination": "/api/auth?action=google-callback"
