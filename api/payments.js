@@ -89,6 +89,8 @@ async function handleBachsWebhook(request) {
     const reference = String(event.data?.reference || '');
     if (!checkoutId && !reference) return json({ received: true, ignored: true });
     const sql = db();
+    const seenEvent = await sql`SELECT id FROM payment_events WHERE provider='bachs' AND provider_payload->>'webhook_event_id'=${event.id} LIMIT 1`;
+    if (seenEvent.length) return json({ received: true, duplicate: true });
     const rows = await sql`SELECT pe.id,pe.booking_id,pe.amount_minor,pe.currency,pe.status,b.amount_minor AS booking_amount_minor,b.currency AS booking_currency FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id
       WHERE pe.provider='bachs'
         AND (${checkoutId} = '' OR pe.provider_payload->>'checkout_id'=${checkoutId})
