@@ -3,7 +3,7 @@ import './styles.css';
 import './dashboard.css';
 
 const menu = [
-  ['Overview','◫'],['Campaigns','▤'],['Placements','▦'],['Saved placements','♡'],['Bookings',''],['Messages','✉'],['Analytics','⌁'],['Billing','₦'],['Settings','⚙']
+  ['Overview','◫'],['Campaigns','▤'],['Placements','▦'],['Saved placements','♡'],['Bookings','']
 ];
 const publisherMenu = [['Overview','◫'],['Placements','▦'],['Bookings',''],['Earnings','₦'],['Verification','✓']];
 function Mark(){return <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 13.5 13.5 8a7 7 0 0 1 9.9 0l2.2 2.2-4.2 4.2-2.2-2.2a1.1 1.1 0 0 0-1.5 0l-5.5 5.5a1.1 1.1 0 0 0 0 1.5l2.2 2.2-4.2 4.2L8 23.4a7 7 0 0 1 0-9.9Z" fill="currentColor"/><path d="m32 26.5-5.5 5.5a7 7 0 0 1-9.9 0l-2.2-2.2 4.2-4.2 2.2 2.2a1.1 1.1 0 0 0 1.5 0l5.5-5.5a1.1 1.1 0 0 0 0-1.5l-2.2-2.2 4.2-4.2 2.2 2.2a7 7 0 0 1 0 9.9Z" fill="currentColor"/><circle cx="31.5" cy="8.5" r="3.5" fill="#b7e66a"/></svg>}
@@ -24,7 +24,7 @@ function Dashboard(){
  const [savedIds,setSavedIds]=useState([]);
  const [payoutData,setPayoutData]=useState({balances:[],requests:[]});
  const [payoutBusy,setPayoutBusy]=useState(false);
- const [verification,setVerification]=useState({business_name:'Dino Sparlz',platform:'X',handle:'@nochalantszn',profile_url:'https://x.com/nochalantszn?s=11',note:''});
+ const [verification,setVerification]=useState({business_name:'',platform:'Instagram',handle:'',profile_url:'',note:''});
  async function loadSection(section=active){const endpoint=section==='Campaigns'?'/api/campaigns':section==='Saved placements'?'/api/saved-placements':section==='Bookings'?'/api/bookings':section==='Earnings'?'/api/payouts':(section==='Placements'||section==='Verification')?'/api/publisher-placements':null;if(!endpoint){setRows([]);return;}try{const res=await fetch(endpoint,{credentials:'same-origin'});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Could not load this section.');if((section==='Placements'||section==='Verification')&&data.verification)setVerification(v=>({...v,business_name:data.verification.business_name||v.business_name,platform:data.verification.verification_platform||v.platform,handle:data.verification.verification_handle||v.handle,profile_url:data.verification.verification_url||v.profile_url,note:data.verification.verification_note||''}));if(section==='Earnings'){setPayoutData({balances:data.balances||[],requests:data.requests||[]});setRows([]);}else setRows(data.data||[]);}catch(e){setNotice(e.message||'Could not load this section.');}}
  async function openSection(section){setActive(section);await loadSection(section);}
  async function submitCampaign(event){event.preventDefault();setSaving(true);setFormError('');try{const res=await fetch('/api/campaigns',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(campaignForm)});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Campaign could not be created.');setCampaignForm({name:'',objective:'awareness',brief:'',budget:'',start_date:'',end_date:''});setModal('');setNotice('Campaign saved as a draft.');setActive('Campaigns');await loadSection('Campaigns');const d=await fetch('/api/dashboard',{credentials:'same-origin'});const dd=await d.json().catch(()=>({}));if(d.ok)setStats(dd.stats||{});}catch(e){setFormError(e.message||'Campaign could not be saved.');}finally{setSaving(false);}}
