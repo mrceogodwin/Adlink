@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
-import { webhooks, BachsWebhookError } from '@bachs/sdk';
+import { Bachs, webhooks, BachsWebhookError } from '@bachs/sdk';
 import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
@@ -102,7 +102,7 @@ async function handleBachsCheckout(request, auth) {
   const bookingId = String(body.booking_id || '');
   if (!UUID.test(bookingId)) return json({ error: 'Choose a valid booking.' }, 400);
   const sql = db();
-  const rows = await sql`SELECT b.id,b.amount_minor,b.currency,b.status FROM bookings b WHERE b.id=${bookingId} AND b.advertiser_id=${auth.profile.id} LIMIT 1`;
+  const rows = await sql`SELECT b.id,b.amount_minor,b.currency,b.status,p.email FROM bookings b JOIN profiles p ON p.id=b.advertiser_id WHERE b.id=${bookingId} AND b.advertiser_id=${auth.profile.id} LIMIT 1`;
   if (!rows.length) return json({ error: 'Booking not found.' }, 404);
   const booking = rows[0];
   if (booking.status !== 'awaiting_payment') return json({ error: 'This booking must be accepted by the publisher before payment.' }, 409);
@@ -115,21 +115,18 @@ async function handleBachsCheckout(request, auth) {
   const origin = new URL(request.url).origin;
   const inserted = await sql`INSERT INTO payment_events(booking_id,provider,provider_reference,amount_minor,currency,status,provider_payload) VALUES (${booking.id},'bachs',${reference},${amount},${booking.currency || 'NGN'},'initialized','{}'::jsonb) RETURNING id`;
   try {
-    const response = await fetch('https://sandbox-api.bachs.io/v1/checkout-sessions', {
-      method: 'POST',
-      headers: { authorization: 'Bearer ' + secret, 'content-type': 'application/json', 'idempotency-key': reference },
-      body: JSON.stringify({
-        pricing: { currency: booking.currency || 'NGN', amount: (amount / 100).toFixed(2) },
-        reference,
-        success_url: origin + '/dashboard?payment=return',
-        cancel_url: origin + '/dashboard?payment=cancelled',
-        metadata: { adlink_booking_id: booking.id, adlink_payment_event_id: inserted[0].id }
-      })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.checkout_url || !result.checkout_id) {
-      await sql`UPDATE payment_events SET status='failed',provider_payload=${JSON.stringify({ initialization_error: result.detail || result.message || 'Bachs checkout initialization failed' })}::jsonb WHERE id=${inserted[0].id} AND status='initialized'`;
-      console.error('Bachs checkout initialization failed', { status: response.status, error_code: result.error_code, detail: result.detail });
+    const bachs = new Bachs({ apiKey: secret });
+    const checkout = await bachs.checkoutSessions.create({
+      pricing: { currency: booking.currency || 'NGN', amount: (amount / 100).toFixed(2) },
+      customer: { email: booking.email },
+      success_url: origin + '/dashboard?payment=return',
+      cancel_url: origin + '/dashboard?payment=cancelled',
+      metadata: { adlink_booking_id: booking.id, adlink_payment_event_id: inserted[0].id }
+    }, { idempotencyKey: reference });
+    const result = checkout;
+    if (!result.checkout_url || !result.checkout_id) {
+      await sql`UPDATE payment_events SET status='failed',provider_payload=${JSON.stringify({ initialization_error: 'Bachs returned an incomplete checkout session' })}::jsonb WHERE id=${inserted[0].id} AND status='initialized'`;
+      console.error('Bachs checkout initialization returned incomplete session', { has_checkout_url: Boolean(result.checkout_url), has_checkout_id: Boolean(result.checkout_id) });
       return json({ error: 'Could not start Bachs checkout. Please try again.' }, 502);
     }
     await sql`UPDATE payment_events SET status='pending',provider_payload=${JSON.stringify({ checkout_id: result.checkout_id, checkout_status: result.status, checkout_expires_at: result.expires_at || null })}::jsonb WHERE id=${inserted[0].id} AND status='initialized'`;
