@@ -2,6 +2,7 @@ import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
 const objectives = new Set(['awareness','traffic','leads','sales','community','other']);
+const campaignModes = new Set(['self_service','managed']);
 const dateOrNull = value => value ? String(value).slice(0,10) : null;
 
 async function handler(request) {
@@ -11,7 +12,7 @@ async function handler(request) {
   const sql = db();
   if (request.method === 'GET') {
     try {
-      const rows = await sql`SELECT id, name, objective, brief, budget_minor, currency, start_date, end_date, status, created_at, updated_at FROM campaigns WHERE advertiser_id = ${auth.profile.id} ORDER BY created_at DESC LIMIT 100`;
+      const rows = await sql`SELECT id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode, created_at, updated_at FROM campaigns WHERE advertiser_id = ${auth.profile.id} ORDER BY created_at DESC LIMIT 100`;
       return json({ data: rows });
     } catch (error) {
       console.error('Campaign list failed', { message: error?.message });
@@ -24,18 +25,20 @@ async function handler(request) {
     const body = await request.json();
     const name = String(body.name || '').trim();
     const objective = String(body.objective || '');
+    const campaignMode = String(body.campaign_mode || 'self_service');
     const brief = String(body.brief || '').trim();
     const budget = Number(body.budget);
     const startDate = dateOrNull(body.start_date);
     const endDate = dateOrNull(body.end_date);
     if (name.length < 3 || name.length > 120) return json({ error: 'Campaign name must be 3–120 characters.' }, 400);
     if (!objectives.has(objective)) return json({ error: 'Choose a valid campaign objective.' }, 400);
+    if (!campaignModes.has(campaignMode)) return json({ error: 'Choose self-service or managed campaign support.' }, 400);
     if (brief.length < 10 || brief.length > 5000) return json({ error: 'Campaign brief must be 10–5,000 characters.' }, 400);
     if (!Number.isFinite(budget) || budget < 100 || budget > 1000000000) return json({ error: 'Enter a budget between ₦100 and ₦1,000,000,000.' }, 400);
     if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return json({ error: 'Invalid start date.' }, 400);
     if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return json({ error: 'Invalid end date.' }, 400);
     if (startDate && endDate && endDate < startDate) return json({ error: 'End date cannot be before the start date.' }, 400);
-    const rows = await sql`INSERT INTO campaigns (advertiser_id, name, objective, brief, budget_minor, currency, start_date, end_date, status) VALUES (${auth.profile.id}, ${name}, ${objective}, ${brief}, ${Math.round(budget * 100)}, 'NGN', ${startDate}, ${endDate}, 'draft') RETURNING id, name, objective, brief, budget_minor, currency, start_date, end_date, status, created_at`;
+    const rows = await sql`INSERT INTO campaigns (advertiser_id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode) VALUES (${auth.profile.id}, ${name}, ${objective}, ${brief}, ${Math.round(budget * 100)}, 'NGN', ${startDate}, ${endDate}, ${campaignMode === 'managed' ? 'submitted' : 'draft'}, ${campaignMode}) RETURNING id, name, objective, brief, budget_minor, currency, start_date, end_date, status, campaign_mode, created_at`;
     return json({ campaign: rows[0] }, 201);
   } catch (error) {
     console.error('Campaign creation failed', { message: error?.message, code: error?.code });
