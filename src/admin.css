@@ -83,3 +83,28 @@
  .admin-shell .admin-check-row{align-items:flex-start}
  .admin-shell .admin-check-row em{margin-top:1px}
 }
+
+
+/* Final narrow-screen overflow correction: constrain the admin canvas to the device viewport. */
+.admin-shell,.admin-shell *{box-sizing:border-box}
+.admin-shell{width:100%;max-width:100%;min-width:0;overflow-x:clip}
+.admin-shell .dash-sidebar,.admin-shell .dash-main{width:100%;max-width:100%;min-width:0}
+.admin-shell .dash-main{overflow-x:clip}
+.admin-shell .dash-content{width:100%;max-width:100%;min-width:0;margin:0 auto}
+.admin-shell .admin-welcome,.admin-shell .admin-welcome>div{width:100%;max-width:100%;min-width:0}
+.admin-shell .admin-welcome p{max-width:100%;overflow-wrap:anywhere}
+.admin-shell .admin-stat-grid,.admin-shell .admin-queue-grid,.admin-shell .admin-review-columns{width:100%;max-width:100%;min-width:0}
+.admin-shell .admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.admin-shell .dash-stat-card,.admin-shell .admin-queue-card,.admin-shell .dash-panel,.admin-shell .admin-checklist-panel{min-width:0;max-width:100%}
+.admin-shell .dash-stat-card>*{min-width:0;overflow-wrap:anywhere}
+.admin-shell .admin-section-heading,.admin-shell .admin-review-row,.admin-shell .admin-check-row{min-width:0;max-width:100%}
+.admin-shell .admin-review-row>div,.admin-shell .admin-check-row strong{min-width:0;overflow-wrap:anywhere}
+.admin-shell .dash-nav{display:flex;width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;touch-action:pan-x}
+.admin-shell .dash-nav button{flex:0 0 auto}
+@media(max-width:680px){
+ .admin-shell .dash-content{padding:22px 14px 32px}
+ .admin-shell .admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .admin-shell .admin-welcome h1{font-size:clamp(25px,7vw,30px);overflow-wrap:anywhere}
+ .admin-shell .admin-welcome p{font-size:13px;line-height:1.55}
+}
+@media(max-width:360px){.admin-shell .admin-stat-grid{grid-template-columns:1fr}}
