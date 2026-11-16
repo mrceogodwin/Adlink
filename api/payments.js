@@ -60,7 +60,8 @@ async function recordSuccessfulBachsPayment(sql, payment, event) {
         amount_minor-round(amount_minor * ${commissionBps}::numeric / 10000)::bigint,'pending'
       FROM eligible_booking ON CONFLICT(payment_event_id) DO NOTHING RETURNING id
     )
-    SELECT (SELECT count(*) FROM event_update)::int AS newly_processed,\n      (SELECT count(*) FROM valid_event)::int AS valid_events,
+    SELECT (SELECT count(*) FROM event_update)::int AS newly_processed,
+      (SELECT count(*) FROM valid_event)::int AS valid_events,
       (SELECT count(*) FROM eligible_booking)::int AS paid_bookings,
       (SELECT count(*) FROM earnings_insert)::int AS earnings_created
   `;
