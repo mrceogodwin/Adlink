@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { webhooks, BachsWebhookError } from '@bachs/sdk';
 import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
@@ -9,25 +10,6 @@ function safeHexEqual(expected, supplied) {
   const left = Buffer.from(expected, 'hex');
   const right = Buffer.from(supplied, 'hex');
   return left.length === right.length && timingSafeEqual(left, right);
-}
-
-function verifyBachsSignature(rawBody, headers, secret) {
-  if (!secret) return false;
-  const v2 = headers.get('x-bachs-signature-v2');
-  const timestampHeader = headers.get('x-bachs-timestamp');
-  const legacySignature = headers.get('x-bachs-signature');
-  let timestamp = timestampHeader;
-  let signatures = legacySignature ? [legacySignature] : [];
-  if (v2) {
-    const parts = v2.split(',').map(part => part.trim());
-    const timePart = parts.find(part => part.startsWith('t='));
-    if (timePart) timestamp = timePart.slice(2);
-    signatures = [...signatures, ...parts.filter(part => part.startsWith('v1=')).map(part => part.slice(3))];
-  }
-  const seconds = Number(timestamp);
-  if (!Number.isSafeInteger(seconds) || Math.abs(Date.now() / 1000 - seconds) > 300 || !signatures.length) return false;
-  const expected = createHmac('sha256', secret).update(String(seconds) + '.' + rawBody, 'utf8').digest('hex');
-  return signatures.some(signature => safeHexEqual(expected, signature));
 }
 
 async function recordSuccessfulBachsPayment(sql, payment, event) {
@@ -82,9 +64,15 @@ async function handleBachsWebhook(request) {
   const secret = process.env.BACHS_WEBHOOK_SECRET;
   if (!secret) return json({ error: 'Bachs webhook is not configured.' }, 503);
   const raw = await request.text();
-  if (!verifyBachsSignature(raw, request.headers, secret)) return json({ error: 'Invalid Bachs webhook signature.' }, 401);
+  let event;
   try {
-    const event = JSON.parse(raw);
+    event = webhooks.constructEvent(raw, request.headers, secret);
+  } catch (error) {
+    if (error instanceof BachsWebhookError) return json({ error: 'Invalid Bachs webhook signature.' }, 400);
+    console.error('Bachs webhook verification failed', { message: error?.message });
+    return json({ error: 'Could not verify Bachs webhook.' }, 400);
+  }
+  try {
     if (!event?.id || !event?.type) return json({ error: 'Invalid webhook envelope.' }, 400);
     if (event.type !== 'collection.succeeded') return json({ received: true, ignored: true });
     if (String(event.data?.status || '').toUpperCase() !== 'SUCCEEDED') return json({ error: 'Payment is not successful.' }, 400);
