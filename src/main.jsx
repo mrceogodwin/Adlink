@@ -6,6 +6,7 @@ import Admin from './admin.jsx';
 import AuthDialog from './auth-dialog.jsx';
 import AuthPage from './auth.jsx';
 import ResetPassword from './reset-password.jsx';
+import ForgotPassword from './forgot-password.jsx';
 import Sandbox from './sandbox.jsx';
 
 const placements = [
@@ -104,4 +105,4 @@ function App(){
   </div>;
 }
 const path = window.location.pathname;
-createRoot(document.getElementById('root')).render(path.startsWith('/sandbox') ? <Sandbox/> : path.startsWith('/reset-password') ? <ResetPassword/> : path.startsWith('/admin') ? <Admin/> : path.startsWith('/dashboard') ? <Dashboard/> : (path.startsWith('/login') || path.startsWith('/register')) ? <AuthPage/> : <App/>);
+createRoot(document.getElementById('root')).render(path.startsWith('/sandbox') ? <Sandbox/> : path.startsWith('/reset-password') ? <ResetPassword/> : path.startsWith('/forgot-password') ? <ForgotPassword/> : path.startsWith('/admin') ? <Admin/> : path.startsWith('/dashboard') ? <Dashboard/> : (path.startsWith('/login') || path.startsWith('/register')) ? <AuthPage/> : <App/>);
