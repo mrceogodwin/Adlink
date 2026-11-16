@@ -10,7 +10,7 @@ async function handler(request) {
   const sql = db();
   if (request.method === 'GET') {
     try {
-      const verification = await sql`SELECT business_name, verification_status, verification_platform, verification_handle, verification_url, verification_note, verification_submitted_at, verification_review_note, verification_reviewed_at FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1`;
+      const verification = await sql`SELECT business_name, profile_image_url, verification_status, verification_platform, verification_handle, verification_url, verification_note, verification_submitted_at, verification_review_note, verification_reviewed_at FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1`;
       const rows = await sql`SELECT id, title, platform, category, handle, description, audience_size, estimated_reach, engagement_rate, price_minor, currency, deliverable, turnaround_days, status, created_at, updated_at FROM placements WHERE publisher_id=(SELECT id FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1) ORDER BY created_at DESC LIMIT 100`;
       return json({ data: rows, verification: verification[0] || null });
     } catch (error) {
@@ -22,6 +22,21 @@ async function handler(request) {
   if (!checkSameOrigin(request)) return json({ error: 'Cross-origin request rejected.' }, 403);
   try {
     const body = await request.json();
+    if (body.action === 'update_profile_image') {
+      const imageUrl = String(body.profile_image_url || '').trim();
+      if (imageUrl.length > 2048) return json({ error: 'Image URL is too long.' }, 400);
+      if (imageUrl) {
+        let parsed;
+        try { parsed = new URL(imageUrl); } catch {}
+        if (!parsed || parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password) {
+          return json({ error: 'Enter a valid public HTTPS image URL.' }, 400);
+        }
+      }
+      const updated = await sql`UPDATE publisher_profiles SET profile_image_url=${imageUrl || null}, updated_at=now() WHERE profile_id=${auth.profile.id} RETURNING profile_image_url`;
+      if (!updated.length) return json({ error: 'Publisher profile not found.' }, 404);
+      await sql`INSERT INTO audit_logs (actor_profile_id, action, entity_type, entity_id, details) SELECT ${auth.profile.id}, 'update_profile_image', 'publisher', id::text, '${JSON.stringify({ has_image: Boolean(imageUrl) })}'::jsonb FROM publisher_profiles WHERE profile_id=${auth.profile.id}`;
+      return json({ profile_image_url: updated[0].profile_image_url });
+    }
     if (body.action === 'submit_verification') {
       const businessName = String(body.business_name || '').trim();
       const platform = String(body.platform || '').trim();
