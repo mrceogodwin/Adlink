@@ -151,3 +151,45 @@
   .mobile-bottom-nav small{font-size:7px}
 }
 @media(max-width:380px){.placement-grid{grid-template-columns:1fr}}
+
+
+/* Adlink 2.0 UI refinement — marketplace cards, filters and responsive rhythm */
+.market-section{scroll-margin-top:88px}
+.market-layout{align-items:start}
+.filters{position:sticky;top:22px}
+.placement-grid{align-items:stretch}
+.placement-card{display:flex;flex-direction:column;min-width:0;border:1px solid #e5eadf;border-radius:14px;background:#fff;box-shadow:0 5px 18px #1d32120a;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.placement-card:hover{transform:translateY(-3px);border-color:#cbdcbd;box-shadow:0 16px 34px #1d321214}
+.placement-card h3,.placement-description,.handle{overflow-wrap:anywhere}
+.placement-description{min-height:42px}
+.metric-row{margin-top:auto}
+.placement-bottom{padding-top:15px}
+.book-placement-btn{min-height:43px;border-radius:9px;font-weight:700}
+.filter-option{transition:background .15s ease,border-color .15s ease,color .15s ease}
+.filter-option:focus-visible,.book-placement-btn:focus-visible,.save-btn:focus-visible{outline:3px solid #b7d69b;outline-offset:2px}
+.result-note{border:1px solid #e4ebdc;border-radius:10px;padding:10px 12px;background:#fff}
+@media(min-width:1100px){
+ .market-layout{grid-template-columns:245px minmax(0,1fr);gap:25px}
+ .placement-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+ .placement-card{padding:19px}
+}
+@media(min-width:681px) and (max-width:1099px){
+ .market-layout{grid-template-columns:210px minmax(0,1fr);gap:16px}
+ .placement-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+ .placement-card{padding:16px}
+}
+@media(max-width:680px){
+ .filters{position:static}
+ .placement-card{padding:14px;border-radius:12px}
+ .placement-description{min-height:0;font-size:10px;line-height:1.5}
+ .metric-row{gap:7px}
+ .metric-row>div{min-width:0}
+ .metric-row strong{font-size:13px}
+ .placement-bottom{align-items:flex-end;gap:8px}
+ .book-placement-btn{min-height:42px;font-size:11px}
+ .result-note{width:100%;margin-top:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .placement-card,.filter-option{transition:none}
+ .placement-card:hover{transform:none}
+}
