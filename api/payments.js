@@ -5,6 +5,14 @@ import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+export function parseBachsAmountMinor(value) {
+  const amount = String(value ?? '');
+  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(amount)) return null;
+  const [whole, fraction = ''] = amount.split('.');
+  const minor = BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
+  return minor <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(minor) : null;
+}
+
 function safeHexEqual(expected, supplied) {
   if (!supplied || !/^[a-f0-9]+$/i.test(supplied) || expected.length !== supplied.length) return false;
   const left = Buffer.from(expected, 'hex');
@@ -13,9 +21,9 @@ function safeHexEqual(expected, supplied) {
 }
 
 async function recordSuccessfulBachsPayment(sql, payment, event) {
-  const amountMinor = Math.round(Number(event.data?.amount) * 100);
+  const amountMinor = parseBachsAmountMinor(event.data?.amount);
   const currency = String(event.data?.currency || '').toUpperCase();
-  if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || currency !== payment.currency) {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || currency !== String(payment.currency || '').toUpperCase()) {
     await sql`UPDATE payment_events SET status='failed', provider_payload=provider_payload || ${JSON.stringify({ webhook_error: 'amount_or_currency_mismatch', event_id: event.id })}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
     return { mismatch: true };
   }
@@ -52,7 +60,7 @@ async function recordSuccessfulBachsPayment(sql, payment, event) {
         amount_minor-round(amount_minor * ${commissionBps}::numeric / 10000)::bigint,'pending'
       FROM eligible_booking ON CONFLICT(payment_event_id) DO NOTHING RETURNING id
     )
-    SELECT (SELECT count(*) FROM valid_event)::int AS valid_events,
+    SELECT (SELECT count(*) FROM event_update)::int AS newly_processed,\n      (SELECT count(*) FROM valid_event)::int AS valid_events,
       (SELECT count(*) FROM eligible_booking)::int AS paid_bookings,
       (SELECT count(*) FROM earnings_insert)::int AS earnings_created
   `;
@@ -83,7 +91,7 @@ async function handleBachsWebhook(request) {
     if (!rows.length) return json({ received: true, ignored: true });
     const result = await recordSuccessfulBachsPayment(sql, rows[0], event);
     if (result.mismatch) return json({ error: 'Payment amount or currency mismatch.' }, 400);
-    if (!result.processed?.valid_events) return json({ received: true, duplicate: true });
+    if (!result.processed?.newly_processed) return json({ received: true, duplicate: true });
     if (!result.processed?.paid_bookings) return json({ received: true, review_required: true });
     await sql`INSERT INTO audit_logs(action,entity_type,entity_id,details) VALUES ('bachs_collection_succeeded','payment',${rows[0].id},${JSON.stringify({ event_id: event.id, checkout_id: checkoutId })}::jsonb)`;
     return json({ received: true });
