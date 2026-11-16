@@ -51,29 +51,29 @@
 @media(prefers-reduced-motion:reduce){.avatar-track{animation:none}}
 @media(max-width:680px){.avatar-marquee{width:104px;flex-basis:104px}.publisher-avatar{width:32px;height:32px;flex-basis:32px}}
 
-/* Forest-green marketplace filters — aligned with the campaign snapshot */
+/* Match the lighter emerald-green reference used in the marketplace design */
 .filters{
- background:radial-gradient(ellipse at 88% 8%,#174b35 0%,transparent 43%),linear-gradient(145deg,#123b2b 0%,#0d3023 58%,#102f23 100%);
- border:1px solid #315c43;color:#f4f7ef;
+ background:radial-gradient(ellipse at 88% 8%,#284735 0%,transparent 48%),linear-gradient(145deg,#183126 0%,#1c3b2c 55%,#183528 100%);
+ border:1px solid #42634d;color:#f4f7ef;
  box-shadow:0 18px 45px #071f1426;
 }
-.filters .filter-top{border-color:#315b43}
+.filters .filter-top{border-color:#3b5b45}
 .filters .filter-top strong,.filters .field-label,.filters .filter-label,.filters .budget-title strong{color:#f1f6ed}
 .filters .filter-top button{color:#b7e66a}
 .filters .search-input,.filters .filter-group select{
- background:#1b4934;border-color:#426c50;color:#f4f7ef;
+ background:#294735;border-color:#4b6b53;color:#f4f7ef;
 }
 .filters .search-input input{color:#f4f7ef}
-.filters .search-input input::placeholder{color:#b2c5b5}
-.filters .search-input span,.filters .platform-symbol{color:#c1d5c1}
-.filters .filter-group{border-color:#315b43}
-.filters .filter-option{color:#d0dfd0}
-.filters .filter-option:hover{background:#20533a}
+.filters .search-input input::placeholder{color:#c0d0c1}
+.filters .search-input span,.filters .platform-symbol{color:#c8d8c9}
+.filters .filter-group{border-color:#3b5b45}
+.filters .filter-option{color:#d6e2d6}
+.filters .filter-option:hover{background:#31523d}
 .filters .filter-option.selected{background:#b7e66a;color:#17251b}
 .filters .filter-check{color:#b7e66a}
 .filters .filter-option.selected .filter-check{color:#17251b}
-.filters .range-labels{color:#c0d0c0}
-.filters .filter-tip{background:#1b4934;border:1px solid #426c50}
+.filters .range-labels{color:#c4d2c5}
+.filters .filter-tip{background:#294735;border:1px solid #4b6b53}
 .filters .filter-tip strong{color:#f2f6ef}
-.filters .filter-tip p{color:#c1d0c1}
+.filters .filter-tip p{color:#c5d2c6}
 .filters .filter-tip button{color:#b7e66a}
