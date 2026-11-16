@@ -35,7 +35,7 @@ function App(){
   const [publisherShowcase,setPublisherShowcase] = useState([]);
   useEffect(()=>{
     let active=true;
-    fetch('/api/publisher-showcase').then(async response=>{const body=await response.json().catch(()=>({}));if(response.ok&&active)setPublisherShowcase(Array.isArray(body.data)?body.data:[]);}).catch(()=>{});
+    fetch('/api/listings?view=publishers').then(async response=>{const body=await response.json().catch(()=>({}));if(response.ok&&active)setPublisherShowcase(Array.isArray(body.data)?body.data:[]);}).catch(()=>{});
     fetch('/api/listings?limit=60').then(async response=>{
       const body=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(body.error||'Marketplace API unavailable');
