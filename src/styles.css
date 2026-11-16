@@ -51,29 +51,29 @@
 @media(prefers-reduced-motion:reduce){.avatar-track{animation:none}}
 @media(max-width:680px){.avatar-marquee{width:104px;flex-basis:104px}.publisher-avatar{width:32px;height:32px;flex-basis:32px}}
 
-/* Match the lighter emerald-green reference used in the marketplace design */
+/* Match the deep charcoal-pine green of the campaign snapshot */
 .filters{
- background:radial-gradient(ellipse at 88% 8%,#284735 0%,transparent 48%),linear-gradient(145deg,#183126 0%,#1c3b2c 55%,#183528 100%);
- border:1px solid #42634d;color:#f4f7ef;
- box-shadow:0 18px 45px #071f1426;
+ background:linear-gradient(145deg,#18261e 0%,#1b2d22 58%,#213428 100%);
+ border:1px solid #34483a;color:#f4f6ef;
+ box-shadow:0 18px 45px #07140d24;
 }
-.filters .filter-top{border-color:#3b5b45}
-.filters .filter-top strong,.filters .field-label,.filters .filter-label,.filters .budget-title strong{color:#f1f6ed}
+.filters .filter-top{border-color:#34483a}
+.filters .filter-top strong,.filters .field-label,.filters .filter-label,.filters .budget-title strong{color:#f1f4ed}
 .filters .filter-top button{color:#b7e66a}
 .filters .search-input,.filters .filter-group select{
- background:#294735;border-color:#4b6b53;color:#f4f7ef;
+ background:#24372a;border-color:#405344;color:#f4f6ef;
 }
-.filters .search-input input{color:#f4f7ef}
-.filters .search-input input::placeholder{color:#c0d0c1}
-.filters .search-input span,.filters .platform-symbol{color:#c8d8c9}
-.filters .filter-group{border-color:#3b5b45}
-.filters .filter-option{color:#d6e2d6}
-.filters .filter-option:hover{background:#31523d}
+.filters .search-input input{color:#f4f6ef}
+.filters .search-input input::placeholder{color:#b5c0b5}
+.filters .search-input span,.filters .platform-symbol{color:#c1cec1}
+.filters .filter-group{border-color:#34483a}
+.filters .filter-option{color:#cbd5cb}
+.filters .filter-option:hover{background:#2a4031}
 .filters .filter-option.selected{background:#b7e66a;color:#17251b}
 .filters .filter-check{color:#b7e66a}
 .filters .filter-option.selected .filter-check{color:#17251b}
-.filters .range-labels{color:#c4d2c5}
-.filters .filter-tip{background:#294735;border:1px solid #4b6b53}
-.filters .filter-tip strong{color:#f2f6ef}
-.filters .filter-tip p{color:#c5d2c6}
+.filters .range-labels{color:#b5c1b6}
+.filters .filter-tip{background:#24372a;border:1px solid #405344}
+.filters .filter-tip strong{color:#f2f5ef}
+.filters .filter-tip p{color:#bdc9be}
 .filters .filter-tip button{color:#b7e66a}
