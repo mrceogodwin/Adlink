@@ -30,8 +30,8 @@ export default function Admin(){
   const rows=overview?.recentPayments||[];
   const headers=['Provider','Reference','Status','Amount minor','Currency','Advertiser email','Booking ID','Verified at','Created at'];
   const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
-  const csv=[headers,...rows.map(item=>[item.provider,item.provider_reference,item.status,item.amount_minor,item.currency,item.advertiser_email,item.booking_id,item.verified_at,item.created_at])].map(row=>row.map(quote).join(',')).join('\\r\\n');
-  const blob=new Blob(['\\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const csv=[headers,...rows.map(item=>[item.provider,item.provider_reference,item.status,item.amount_minor,item.currency,item.advertiser_email,item.booking_id,item.verified_at,item.created_at])].map(row=>row.map(quote).join(',')).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='adlink-payment-report.csv';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
  }
  async function reviewRecord(entity,id,action,extra={}){
