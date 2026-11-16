@@ -80,7 +80,7 @@ async function handler(request) {
       SELECT p.id, p.title AS name, p.handle, p.platform AS type, p.category,
              p.description, p.audience_size, p.estimated_reach, p.engagement_rate,
              p.price_minor, p.currency, p.deliverable, p.turnaround_days,
-             pp.business_name AS publisher_name, pp.profile_image_url AS publisher_image_url, pp.verification_status
+             pp.business_name AS publisher_name, NULL::text AS publisher_image_url, pp.verification_status
       FROM placements p
       JOIN publisher_profiles pp ON pp.id = p.publisher_id
       WHERE p.status = 'published'
