@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,6 +13,7 @@
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
+    "@bachs/sdk": "2.0.0",
     "@neondatabase/serverless": "^1.0.2",
     "@vitejs/plugin-react": "latest",
     "react": "latest",
