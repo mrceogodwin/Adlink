@@ -13,6 +13,11 @@ export function parseBachsAmountMinor(value) {
   return minor <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(minor) : null;
 }
 
+export function isAcceptableBachsSuccessStatus(value) {
+  const status = String(value ?? '').trim().toUpperCase();
+  return status === '' || ['SUCCEEDED', 'SUCCESS', 'PAID', 'COMPLETED'].includes(status);
+}
+
 function safeHexEqual(expected, supplied) {
   if (!supplied || !/^[a-f0-9]+$/i.test(supplied) || expected.length !== supplied.length) return false;
   const left = Buffer.from(expected, 'hex');
@@ -96,7 +101,7 @@ async function handleBachsWebhook(request) {
         AND (${checkoutId} = '' OR pe.provider_payload->>'checkout_id'=${checkoutId})
         AND (${reference} = '' OR pe.provider_reference=${reference})
       LIMIT 1`;
-    if (eventStatus && !['SUCCEEDED','SUCCESS','PAID','COMPLETED'].includes(eventStatus)) {
+    if (!isAcceptableBachsSuccessStatus(eventStatus)) {
       if (rows.length) await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_event_id: event.id, provider_status: eventStatus || 'UNKNOWN' })}::jsonb
         WHERE id=${rows[0].id} AND status IN ('initialized','pending')`;
       return json({ received: true, review_required: true });
