@@ -6,3 +6,80 @@
 .admin-data-panel{margin-top:16px;padding:18px;border:1px solid #e6e9e1;background:#fff;border-radius:10px;min-width:0}.admin-data-panel .dash-panel-head>button{border:1px solid #dce5d2;border-radius:6px;background:#f7faf3;color:#426a32;padding:9px 11px;font-size:10px;font-weight:700;white-space:nowrap}.admin-revenue-total{display:flex;align-items:baseline;gap:10px;margin:20px 0 12px}.admin-revenue-total strong{font:700 24px Manrope,sans-serif;letter-spacing:-.04em}.admin-revenue-total span{font-size:10px;color:#858c7f}.admin-revenue-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-items:end;min-height:175px;padding:14px 0 0;border-top:1px solid #eef0ea}.admin-revenue-month{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0}.admin-revenue-bar-track{height:95px;width:100%;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(to top,#f5f7f1 1px,transparent 1px);background-size:100% 25%}.admin-revenue-bar{width:min(34px,65%);min-height:3px;border-radius:5px 5px 0 0;background:#71964f}.admin-revenue-month strong{font-size:9px;white-space:nowrap}.admin-revenue-month small,.admin-revenue-month em{font:8px 'DM Mono',monospace;color:#858c7f;font-style:normal;white-space:nowrap}.admin-revenue-month em{font-size:7px}@media(max-width:560px){.admin-data-panel{padding:13px}.admin-revenue-bars{gap:5px}.admin-revenue-month strong{font-size:8px}.admin-revenue-month small{font-size:7px}.admin-revenue-month em{font-size:6px}.admin-revenue-total{align-items:flex-start;flex-direction:column;gap:4px}}
 
 .admin-payout-state{display:flex;flex-direction:column;gap:3px;min-width:110px}.admin-payout-state strong{font-size:10px;color:#33402e}.admin-payout-state small{font-size:9px;color:#858c7f}.admin-readonly-tag{display:inline-flex;align-items:center;padding:5px 8px;border-radius:5px;background:#f2f5ed;color:#627a4f;font:700 8px 'DM Mono',monospace;text-transform:uppercase;white-space:nowrap}
+
+
+/* Admin mobile usability pass: keep navigation readable and controls touch-friendly. */
+.admin-shell .dash-nav button{flex:0 0 auto;min-width:max-content}
+.admin-shell .dash-nav{min-width:0;scrollbar-width:thin;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.admin-shell .admin-queue-card,.admin-shell .admin-data-panel,.admin-shell .admin-users-panel,.admin-shell .admin-checklist-panel{min-width:0}
+.admin-shell button,.admin-shell a{-webkit-tap-highlight-color:transparent}
+.admin-shell button:focus-visible,.admin-shell a:focus-visible,.admin-shell input:focus-visible,.admin-shell select:focus-visible{outline:3px solid #b7d69b;outline-offset:2px}
+@media(max-width:680px){
+ .admin-shell .dash-sidebar{position:sticky;top:0;z-index:30;padding:12px 14px 10px;background:#fff;box-shadow:0 5px 16px #1b2a160a}
+ .admin-shell .dash-brand{font-size:22px;padding:0 6px 11px}
+ .admin-shell .admin-private-badge{padding:8px 10px;margin-bottom:12px;gap:9px}
+ .admin-shell .admin-private-badge>span{width:29px;height:29px}
+ .admin-shell .admin-private-badge strong{font-size:11px}
+ .admin-shell .admin-private-badge small{font-size:10px}
+ .admin-shell .dash-nav{gap:7px;padding:2px 1px 8px;margin:0 -1px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity}
+ .admin-shell .dash-nav button{height:42px;min-height:42px;padding:0 13px;border:1px solid #e8ebe3;background:#fbfcfa;border-radius:9px;font-size:12px;line-height:1;scroll-snap-align:start}
+ .admin-shell .dash-nav button.selected{border-color:#d6e5c9;background:#eaf3df}
+ .admin-shell .dash-nav-icon{font-size:15px;width:auto;min-width:15px}
+ .admin-shell .dash-topbar{min-height:56px;height:auto;padding:10px 15px;gap:8px}
+ .admin-shell .dash-breadcrumb{font-size:12px}
+ .admin-shell .dash-top-actions{gap:7px}
+ .admin-shell .admin-preview-pill{font-size:9px;padding:7px 8px}
+ .admin-shell .dash-content{padding:23px 14px 34px}
+ .admin-shell .admin-welcome{gap:12px}
+ .admin-shell .admin-welcome h1{font-size:clamp(27px,7vw,32px);line-height:1.12;margin:9px 0 7px}
+ .admin-shell .admin-welcome p{font-size:13px;line-height:1.55;max-width:34rem}
+ .admin-shell .admin-env-chip{font-size:10px;padding:8px 10px}
+ .admin-shell .admin-section-heading{margin:23px 0 12px;gap:6px}
+ .admin-shell .admin-section-heading h2,.admin-shell .admin-checklist-panel h2{font-size:17px}
+ .admin-shell .admin-section-heading p,.admin-shell .admin-checklist-panel>div:first-child p{font-size:12px;line-height:1.5}
+ .admin-shell .admin-section-heading>span{font-size:9px}
+ .admin-shell .admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:15px}
+ .admin-shell .dash-stat-card{padding:13px 12px}
+ .admin-shell .dash-stat-head{font-size:11px;line-height:1.35}
+ .admin-shell .dash-stat-card>strong{font-size:26px;margin:12px 0 5px}
+ .admin-shell .dash-stat-card>small{font-size:10px;line-height:1.4}
+ .admin-shell .admin-queue-grid{grid-template-columns:1fr;gap:10px}
+ .admin-shell .admin-queue-card{padding:15px}
+ .admin-shell .admin-queue-card h3{font-size:14px;margin:12px 0 6px}
+ .admin-shell .admin-queue-card p{font-size:12px;line-height:1.55;min-height:0;margin-bottom:12px}
+ .admin-shell .admin-queue-card button{min-height:40px;padding:10px 13px;font-size:11px}
+ .admin-shell .admin-review-columns{grid-template-columns:1fr;gap:11px}
+ .admin-shell .admin-review-columns>.dash-panel{padding:14px}
+ .admin-shell .dash-panel-head h2{font-size:14px}
+ .admin-shell .dash-panel-head p{font-size:11px;line-height:1.5}
+ .admin-shell .admin-review-row{gap:10px;padding:14px 0}
+ .admin-shell .admin-review-row strong{font-size:12px}
+ .admin-shell .admin-review-row small{font-size:11px;line-height:1.5}
+ .admin-shell .admin-review-actions{width:100%;gap:8px}
+ .admin-shell .admin-review-actions button{min-height:42px;font-size:11px;padding:10px 12px}
+ .admin-shell .admin-checklist-panel{padding:15px;margin-top:12px}
+ .admin-shell .admin-check-row{gap:9px;padding:12px 0}
+ .admin-shell .admin-check-row>span{font-size:9px}
+ .admin-shell .admin-check-row strong{font-size:11px;line-height:1.5}
+ .admin-shell .admin-check-row em{font-size:8px;white-space:nowrap}
+ .admin-shell .admin-alert{padding:12px;margin-bottom:16px}
+ .admin-shell .admin-alert strong{font-size:12px}
+ .admin-shell .admin-alert p{font-size:11px;line-height:1.55}
+ .admin-shell .admin-users-panel,.admin-shell .admin-data-panel{padding:14px;margin-top:14px}
+ .admin-shell .admin-users-toolbar{gap:8px}
+ .admin-shell .admin-users-toolbar input,.admin-shell .admin-users-toolbar select{min-height:44px;font-size:16px}
+ .admin-shell .admin-users-note{font-size:11px;line-height:1.55}
+ .admin-shell .admin-data-panel .dash-panel-head>button{min-height:40px;font-size:11px}
+ .admin-shell .admin-revenue-total strong{font-size:23px}
+ .admin-shell .admin-payout-state{min-width:0}
+ .admin-shell .dash-footer{font-size:10px;line-height:1.5;gap:8px}
+ .admin-shell .dash-toast{left:12px;right:12px;bottom:12px;max-width:none;font-size:12px}
+}
+@media(max-width:390px){
+ .admin-shell .dash-content{padding-left:12px;padding-right:12px}
+ .admin-shell .admin-stat-grid{gap:7px}
+ .admin-shell .dash-stat-card{padding:11px 10px}
+ .admin-shell .dash-stat-card>strong{font-size:23px}
+ .admin-shell .admin-check-row{align-items:flex-start}
+ .admin-shell .admin-check-row em{margin-top:1px}
+}
