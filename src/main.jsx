@@ -94,12 +94,6 @@ function App(){
             <div><strong>One marketplace. Every audience.</strong><small>Creators, communities and publishers—connected.</small></div>
           </div>
         </div>
-        <div className="hero-art hero-community-art" aria-hidden="true">
-          <div className="community-orbit community-orbit-one"></div>
-          <div className="community-orbit community-orbit-two"></div>
-          <div className="community-glow"></div>
-          <div className="community-floating-note"><span>●</span> A community of possibilities</div>
-        </div>
       </section>
       <section className="trust-strip"><span>ONE MARKETPLACE</span><i></i><span>REAL AUDIENCES</span><i></i><span>TRANSPARENT PRICING</span><i></i><span>MADE FOR GROWTH</span></section>
       <section id="marketplace" className="market-section">
