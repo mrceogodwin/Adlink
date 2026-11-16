@@ -20,6 +20,24 @@ async function handler(request) {
   }
   try {
     const url = new URL(request.url);
+    if (url.searchParams.get('view') === 'publisher-showcase') {
+      const showcase = await neon(databaseUrl)`
+        SELECT pp.id, pp.business_name, pp.profile_image_url,
+               COALESCE(
+                 (SELECT p.platform FROM placements p
+                  WHERE p.publisher_id = pp.id AND p.status = 'published'
+                  ORDER BY p.created_at DESC LIMIT 1),
+                 pp.verification_platform,
+                 'Website'
+               ) AS platform
+        FROM publisher_profiles pp
+        WHERE pp.verification_status = 'verified'
+          AND EXISTS (SELECT 1 FROM placements p WHERE p.publisher_id = pp.id AND p.status = 'published')
+        ORDER BY pp.updated_at DESC
+        LIMIT 24
+      `;
+      return json({ data: showcase, count: showcase.length });
+    }
     const view = url.searchParams.get('view');
     const sql = neon(databaseUrl);
     if (view === 'publishers') {
