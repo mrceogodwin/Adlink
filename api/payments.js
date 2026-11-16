@@ -23,7 +23,7 @@ function safeHexEqual(expected, supplied) {
 async function recordSuccessfulBachsPayment(sql, payment, event) {
   const amountMinor = parseBachsAmountMinor(event.data?.amount);
   const currency = String(event.data?.currency || '').toUpperCase();
-  if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || currency !== String(payment.currency || '').toUpperCase()) {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || amountMinor !== Number(payment.amount_minor) || amountMinor !== Number(payment.booking_amount_minor) || currency !== String(payment.currency || '').toUpperCase() || currency !== String(payment.booking_currency || '').toUpperCase()) {
     await sql`UPDATE payment_events SET status='failed', provider_payload=provider_payload || ${JSON.stringify({ webhook_error: 'amount_or_currency_mismatch', event_id: event.id })}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
     return { mismatch: true };
   }
@@ -89,12 +89,12 @@ async function handleBachsWebhook(request) {
     const reference = String(event.data?.reference || '');
     if (!checkoutId && !reference) return json({ received: true, ignored: true });
     const sql = db();
-    const rows = await sql`SELECT id,booking_id,amount_minor,currency,status FROM payment_events
-      WHERE provider='bachs' AND (
-        (provider_payload->>'checkout_id'=${checkoutId} AND ${checkoutId} <> '')
-        OR (provider_reference=${reference} AND ${reference} <> '')
+    const rows = await sql`SELECT pe.id,pe.booking_id,pe.amount_minor,pe.currency,pe.status,b.amount_minor AS booking_amount_minor,b.currency AS booking_currency FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id
+      WHERE pe.provider='bachs' AND (
+        (pe.provider_payload->>'checkout_id'=${checkoutId} AND ${checkoutId} <> '')
+        OR (pe.provider_reference=${reference} AND ${reference} <> '')
       ) LIMIT 1`;
-    if (eventStatus !== 'SUCCEEDED') {
+    if (eventStatus && !['SUCCEEDED','SUCCESS','PAID','COMPLETED'].includes(eventStatus)) {
       if (rows.length) await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_event_id: event.id, provider_status: eventStatus || 'UNKNOWN' })}::jsonb
         WHERE id=${rows[0].id} AND status IN ('initialized','pending')`;
       return json({ received: true, review_required: true });
@@ -127,12 +127,18 @@ async function handleBachsCheckout(request, auth) {
   if (booking.status !== 'awaiting_payment') return json({ error: 'This booking must be accepted by the publisher before payment.' }, 409);
   const amount = Number(booking.amount_minor);
   if (!Number.isSafeInteger(amount) || amount < 100) return json({ error: 'Booking amount is invalid.' }, 400);
-  await sql`UPDATE payment_events SET status='failed' WHERE booking_id=${booking.id} AND provider='bachs' AND status IN ('initialized','pending') AND created_at <= now()-interval '20 minutes'`;
-  const inProgress = await sql`SELECT id FROM payment_events WHERE booking_id=${booking.id} AND provider='bachs' AND status IN ('initialized','pending') AND created_at > now()-interval '20 minutes' LIMIT 1`;
-  if (inProgress.length) return json({ error: 'A Bachs checkout was already started for this booking. Complete it or wait 20 minutes before trying again.' }, 409);
+  await sql`UPDATE payment_events SET status='failed' WHERE booking_id=${booking.id} AND provider='bachs' AND status IN ('initialized','pending') AND provider_payload ? 'checkout_expires_at' AND (provider_payload->>'checkout_expires_at')::timestamptz <= now()`;
+  const inProgress = await sql`SELECT id FROM payment_events WHERE booking_id=${booking.id} AND provider='bachs' AND status IN ('initialized','pending') LIMIT 1`;
+  if (inProgress.length) return json({ error: 'A Bachs checkout is already active or its outcome is being reconciled. Please do not start another payment yet.' }, 409);
   const reference = 'adlink_' + booking.id.replaceAll('-', '') + '_' + randomUUID().replaceAll('-', '');
   const origin = new URL(request.url).origin;
-  const inserted = await sql`INSERT INTO payment_events(booking_id,provider,provider_reference,amount_minor,currency,status,provider_payload) VALUES (${booking.id},'bachs',${reference},${amount},${booking.currency || 'NGN'},'initialized','{}'::jsonb) RETURNING id`;
+  let inserted;
+  try {
+    inserted = await sql`INSERT INTO payment_events(booking_id,provider,provider_reference,amount_minor,currency,status,provider_payload) VALUES (${booking.id},'bachs',${reference},${amount},${booking.currency || 'NGN'},'initialized','{}'::jsonb) RETURNING id`;
+  } catch (error) {
+    if (error?.code === '23505') return json({ error: 'A Bachs checkout was started at the same time. Refresh before trying again.' }, 409);
+    throw error;
+  }
   try {
     const bachs = new Bachs({ apiKey: secret });
     const checkout = await bachs.checkoutSessions.create({
