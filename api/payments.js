@@ -83,11 +83,21 @@ async function handleBachsWebhook(request) {
   try {
     if (!event?.id || !event?.type) return json({ error: 'Invalid webhook envelope.' }, 400);
     if (event.type !== 'collection.succeeded') return json({ received: true, ignored: true });
-    if (String(event.data?.status || '').toUpperCase() !== 'SUCCEEDED') return json({ error: 'Payment is not successful.' }, 400);
+    const eventStatus = String(event.data?.status || '').toUpperCase();
     const checkoutId = String(event.data?.checkout_id || '');
-    if (!checkoutId) return json({ received: true, ignored: true });
+    const reference = String(event.data?.reference || '');
+    if (!checkoutId && !reference) return json({ received: true, ignored: true });
     const sql = db();
-    const rows = await sql`SELECT id,booking_id,amount_minor,currency,status FROM payment_events WHERE provider='bachs' AND provider_payload->>'checkout_id'=${checkoutId} LIMIT 1`;
+    const rows = await sql\`SELECT id,booking_id,amount_minor,currency,status FROM payment_events
+      WHERE provider='bachs' AND (
+        (provider_payload->>'checkout_id'=\${checkoutId} AND \${checkoutId} <> '')
+        OR (provider_reference=\${reference} AND \${reference} <> '')
+      ) LIMIT 1\`;
+    if (eventStatus !== 'SUCCEEDED') {
+      if (rows.length) await sql\`UPDATE payment_events SET provider_payload=provider_payload || \${JSON.stringify({ review_required: true, webhook_event_id: event.id, provider_status: eventStatus || 'UNKNOWN' })}::jsonb
+        WHERE id=\${rows[0].id} AND status IN ('initialized','pending')\`;
+      return json({ received: true, review_required: true });
+    }
     if (!rows.length) return json({ received: true, ignored: true });
     const result = await recordSuccessfulBachsPayment(sql, rows[0], event);
     if (result.mismatch) return json({ error: 'Payment amount or currency mismatch.' }, 400);
@@ -126,6 +136,7 @@ async function handleBachsCheckout(request, auth) {
     const bachs = new Bachs({ apiKey: secret });
     const checkout = await bachs.checkoutSessions.create({
       pricing: { currency: booking.currency || 'NGN', amount: (amount / 100).toFixed(2) },
+      reference,
       customer: { email: booking.email },
       success_url: origin + '/dashboard?payment=return',
       cancel_url: origin + '/dashboard?payment=cancelled',
