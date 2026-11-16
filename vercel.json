@@ -24,6 +24,10 @@
       "destination": "/api/payments?action=webhook"
     },
     {
+      "source": "/api/bachs/webhook",
+      "destination": "/api/payments?action=bachs-webhook"
+    },
+    {
       "source": "/api/auth/login",
       "destination": "/api/auth?action=login"
     },

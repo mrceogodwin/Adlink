@@ -20,6 +20,52 @@ async function handler(request) {
   }
   try {
     const url = new URL(request.url);
+    if (url.searchParams.get('view') === 'publisher-showcase') {
+      const showcase = await neon(databaseUrl)`
+        SELECT pp.id, pp.business_name, pp.profile_image_url,
+               COALESCE(
+                 (SELECT p.platform FROM placements p
+                  WHERE p.publisher_id = pp.id AND p.status = 'published'
+                  ORDER BY p.created_at DESC LIMIT 1),
+                 pp.verification_platform,
+                 'Website'
+               ) AS platform
+        FROM publisher_profiles pp
+        WHERE pp.verification_status = 'verified'
+          AND EXISTS (SELECT 1 FROM placements p WHERE p.publisher_id = pp.id AND p.status = 'published')
+        ORDER BY pp.updated_at DESC
+        LIMIT 24
+      `;
+      return json({ data: showcase, count: showcase.length });
+    }
+    const view = url.searchParams.get('view');
+    const sql = neon(databaseUrl);
+    if (view === 'publishers') {
+      try {
+        const rows = await sql`
+          SELECT pp.id, pp.business_name, pp.profile_image_url,
+                 COALESCE((SELECT p.platform FROM placements p WHERE p.publisher_id=pp.id AND p.status='published' ORDER BY p.created_at DESC LIMIT 1), pp.verification_platform, 'Website') AS platform
+          FROM publisher_profiles pp
+          WHERE pp.verification_status='verified'
+            AND EXISTS (SELECT 1 FROM placements p WHERE p.publisher_id=pp.id AND p.status='published')
+          ORDER BY pp.updated_at DESC
+          LIMIT 24
+        `;
+        return json({ data: rows, count: rows.length, source: 'database' });
+      } catch (imageColumnError) {
+        if (!/profile_image_url|column .* does not exist/i.test(String(imageColumnError?.message || ''))) throw imageColumnError;
+        const rows = await sql`
+          SELECT pp.id, pp.business_name, NULL::text AS profile_image_url,
+                 COALESCE((SELECT p.platform FROM placements p WHERE p.publisher_id=pp.id AND p.status='published' ORDER BY p.created_at DESC LIMIT 1), pp.verification_platform, 'Website') AS platform
+          FROM publisher_profiles pp
+          WHERE pp.verification_status='verified'
+            AND EXISTS (SELECT 1 FROM placements p WHERE p.publisher_id=pp.id AND p.status='published')
+          ORDER BY pp.updated_at DESC
+          LIMIT 24
+        `;
+        return json({ data: rows, count: rows.length, source: 'database', profile_images_pending_migration: true });
+      }
+    }
     const platform = url.searchParams.get('platform');
     const category = url.searchParams.get('category');
     const q = (url.searchParams.get('q') || '').trim().slice(0, 100);
@@ -30,12 +76,11 @@ async function handler(request) {
       return json({ error: 'Invalid filter values.' }, 400);
     }
     if (platform && !allowedPlatforms.has(platform)) return json({ error: 'Unsupported platform.' }, 400);
-    const sql = neon(databaseUrl);
     const rows = await sql`
       SELECT p.id, p.title AS name, p.handle, p.platform AS type, p.category,
              p.description, p.audience_size, p.estimated_reach, p.engagement_rate,
              p.price_minor, p.currency, p.deliverable, p.turnaround_days,
-             pp.business_name AS publisher_name, pp.verification_status
+             pp.business_name AS publisher_name, NULL::text AS publisher_image_url, pp.verification_status
       FROM placements p
       JOIN publisher_profiles pp ON pp.id = p.publisher_id
       WHERE p.status = 'published'
