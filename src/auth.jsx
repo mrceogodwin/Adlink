@@ -59,6 +59,7 @@ export default function AuthPage() {
         {googleError && <div className="auth-error" role="alert">{googleError}</div>}
         {error && <div className="auth-error" role="alert">{error}</div>}
         <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : isAdminLogin ? 'Sign in to admin console' : mode === 'register' ? 'Create my account ' : 'Log in securely '}</button>
+        {isAdminLogin && <a className="auth-home-link" href="/forgot-password">Forgot your password?</a>}
       </form>
       {!isAdminLogin && <>
         <div className="auth-divider"><span>OR CONTINUE WITH</span></div>
