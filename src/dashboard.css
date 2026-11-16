@@ -43,3 +43,73 @@
 .auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#8b9086;font-size:10px;letter-spacing:.12em}.auth-divider:before,.auth-divider:after{content:'';height:1px;background:#e8ebe3;flex:1}.google-role-label{display:grid;gap:7px;font-size:11px;font-weight:700;color:#4c554b;margin-bottom:10px}.google-role-label select{width:100%;border:1px solid #e0e5dc;border-radius:8px;padding:12px;background:#fff;color:#20251e;font:inherit}.google-auth-button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #dfe4dc;border-radius:9px;background:#fff;color:#20251e;font:700 13px 'DM Sans',sans-serif;cursor:pointer}.google-auth-button:hover{background:#f8faf6;border-color:#c9d4c4}.google-auth-button strong{font-size:18px;color:#4285f4}.auth-card input,.auth-card select{font-size:16px}
 
 .auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:#9aa092;font:9px 'DM Mono',monospace;letter-spacing:.12em}.auth-divider:before,.auth-divider:after{content:'';height:1px;background:#e8ece4;flex:1}.google-role-label{display:grid;gap:7px;font-size:10px;color:#50584b;font-weight:700;margin:0 0 12px}.google-role-label select{width:100%;border:1px solid #dfe4d8;border-radius:7px;padding:12px 11px;font:400 12px 'DM Sans',sans-serif;color:#22291f;background:#fff}.google-auth-button{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;border:1px solid #dfe4d8;background:#fff;color:#283126;border-radius:7px;padding:12px;font:600 11px 'DM Sans',sans-serif;transition:border-color .15s,background .15s}.google-auth-button:hover{border-color:#aebda2;background:#fbfcf9}.google-auth-button strong{font:700 16px Arial,sans-serif;color:#4285f4}
+
+
+/* Mobile dashboard layout refinement */
+@media (max-width: 680px) {
+  .dashboard-shell,
+  .dash-main,
+  .dash-content { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .dash-sidebar { min-width: 0; padding: 14px 14px 12px; }
+  .dash-brand { padding-bottom: 12px; }
+  .dash-workspace { min-width: 0; margin-bottom: 12px; }
+  .dash-workspace > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
+  .dash-workspace small { overflow-wrap: anywhere; }
+  .dash-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+    padding: 0;
+  }
+  .dash-nav button {
+    min-width: 0;
+    min-height: 42px;
+    height: auto;
+    justify-content: center;
+    padding: 8px 5px;
+    gap: 5px;
+    white-space: normal;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .dash-nav-icon { width: auto; font-size: 15px; }
+  .nav-new-dot { margin-left: 0; }
+  .dash-topbar { min-width: 0; padding: 0 13px; gap: 8px; }
+  .dash-breadcrumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dash-top-actions { flex: 0 0 auto; }
+  .dash-preview-pill { display: none; }
+  .dash-content { padding: 22px 14px 28px; }
+  .dash-welcome { width: 100%; min-width: 0; }
+  .dash-welcome > div { min-width: 0; }
+  .dash-welcome h1 { overflow-wrap: anywhere; }
+  .dash-primary { min-height: 44px; }
+  .dash-role-switch { align-items: flex-start; }
+  .dash-connection-banner { min-width: 0; padding: 13px; }
+  .dash-connection-banner > div { min-width: 0; flex: 1 1 calc(100% - 42px); }
+  .dash-connection-banner p { overflow-wrap: anywhere; }
+  .connection-status { margin-left: 37px; }
+  .dash-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-stat-card { min-width: 0; overflow-wrap: anywhere; }
+  .dash-stat-head { align-items: flex-start; gap: 5px; }
+  .dash-stat-card > strong { overflow-wrap: anywhere; }
+  .dash-panels { grid-template-columns: minmax(0, 1fr); }
+  .dash-panel { min-width: 0; padding: 15px; }
+  .dash-record { flex-wrap: wrap; }
+  .dash-record-value { white-space: normal; }
+  .dash-footer { min-width: 0; }
+}
+@media (max-width: 420px) {
+  .dash-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dash-nav button { font-size: 9px; padding: 8px 3px; }
+  .dash-content { padding-left: 12px; padding-right: 12px; }
+  .dash-stat-grid { grid-template-columns: minmax(0, 1fr); }
+  .dash-stat-card { padding: 15px; }
+  .dash-stat-card > strong { font-size: 27px; }
+  .dash-panel-head { flex-wrap: wrap; }
+  .dash-empty-activity { padding: 22px 12px; }
+  .dash-quick-action { min-width: 0; }
+  .dash-quick-action small { line-height: 1.5; }
+  .dash-toast { left: 12px; right: 12px; bottom: 12px; max-width: none; box-sizing: border-box; }
+}
