@@ -24,7 +24,7 @@ async function recordSuccessfulBachsPayment(sql, payment, event) {
   const amountMinor = parseBachsAmountMinor(event.data?.amount);
   const currency = String(event.data?.currency || '').toUpperCase();
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || amountMinor !== Number(payment.amount_minor) || amountMinor !== Number(payment.booking_amount_minor) || currency !== String(payment.currency || '').toUpperCase() || currency !== String(payment.booking_currency || '').toUpperCase()) {
-    await sql`UPDATE payment_events SET status='failed', provider_payload=provider_payload || ${JSON.stringify({ webhook_error: 'amount_or_currency_mismatch', event_id: event.id })}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
+    await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_error: 'amount_or_currency_mismatch', event_id: event.id })}::jsonb WHERE id=${payment.id} AND status IN ('initialized','pending')`;
     return { mismatch: true };
   }
   const settings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
@@ -90,10 +90,10 @@ async function handleBachsWebhook(request) {
     if (!checkoutId && !reference) return json({ received: true, ignored: true });
     const sql = db();
     const rows = await sql`SELECT pe.id,pe.booking_id,pe.amount_minor,pe.currency,pe.status,b.amount_minor AS booking_amount_minor,b.currency AS booking_currency FROM payment_events pe JOIN bookings b ON b.id=pe.booking_id
-      WHERE pe.provider='bachs' AND (
-        (pe.provider_payload->>'checkout_id'=${checkoutId} AND ${checkoutId} <> '')
-        OR (pe.provider_reference=${reference} AND ${reference} <> '')
-      ) LIMIT 1`;
+      WHERE pe.provider='bachs'
+        AND (${checkoutId} = '' OR pe.provider_payload->>'checkout_id'=${checkoutId})
+        AND (${reference} = '' OR pe.provider_reference=${reference})
+      LIMIT 1`;
     if (eventStatus && !['SUCCEEDED','SUCCESS','PAID','COMPLETED'].includes(eventStatus)) {
       if (rows.length) await sql`UPDATE payment_events SET provider_payload=provider_payload || ${JSON.stringify({ review_required: true, webhook_event_id: event.id, provider_status: eventStatus || 'UNKNOWN' })}::jsonb
         WHERE id=${rows[0].id} AND status IN ('initialized','pending')`;
@@ -101,7 +101,7 @@ async function handleBachsWebhook(request) {
     }
     if (!rows.length) return json({ received: true, ignored: true });
     const result = await recordSuccessfulBachsPayment(sql, rows[0], event);
-    if (result.mismatch) return json({ error: 'Payment amount or currency mismatch.' }, 400);
+    if (result.mismatch) return json({ received: true, review_required: true });
     if (!result.processed?.newly_processed) return json({ received: true, duplicate: true });
     if (!result.processed?.paid_bookings) return json({ received: true, review_required: true });
     await sql`INSERT INTO audit_logs(action,entity_type,entity_id,details) VALUES ('bachs_collection_succeeded','payment',${rows[0].id},${JSON.stringify({ event_id: event.id, checkout_id: checkoutId })}::jsonb)`;
