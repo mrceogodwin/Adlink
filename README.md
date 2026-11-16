@@ -2,26 +2,72 @@
 
 **Find your audience. Make your message matter.**
 
-Adlink is an advertising marketplace concept connecting businesses with creators, social pages, WhatsApp and Telegram communities, and websites across Africa.
+Adlink is an advertising marketplace connecting advertisers with creators, social pages, WhatsApp and Telegram communities, and websites across Africa.
 
-## Current build
+## Product direction
 
-The first frontend milestone is a responsive Vite + React marketplace preview featuring:
+Adlink supports two campaign paths:
 
-- Responsive landing page and Adlink visual identity
-- Publisher placement cards and sample inventory
-- Search by publisher, platform, category, and tags
-- Platform and category filters
-- Maximum budget slider
-- Sorting by recommendation, price, audience, and engagement
-- Save/unsave placement interactions
-- Empty states, load-more, and feedback notices
-- Publisher onboarding call-to-action
-- Vercel build configuration
+- **Self-service:** advertisers discover approved placements, create campaign briefs, request bookings and manage delivery.
+- **Managed campaigns:** Adlink can support advertisers who need help planning and coordinating placements.
 
-**Important:** the displayed publisher names, audience figures, reach, engagement, and prices are sample data used to develop the interface. They are not verified offers. Account creation, real publisher listings, booking, payment, campaign reporting, and admin workflows are not connected yet.
+Planned revenue streams are a platform commission, optional subscriptions and premium placement opportunities. These commercial features must be configured and tested before being presented as available for purchase.
 
-## Run locally
+## Current application
+
+The existing application is being upgraded incrementally; this is not a greenfield rebuild.
+
+- Frontend: Vite + React.
+- API: Vercel serverless functions.
+- Database: Neon Postgres using `@neondatabase/serverless`.
+- Authentication: server-verified session endpoints and role-based access.
+- Payments: Paystack integration in the main application branch.
+- Deployment target: Vercel.
+
+The Phase 1 development branch includes a responsive marketplace refresh, advertiser and publisher dashboard foundations, publisher verification and placement review, campaign creation, booking requests, delivery evidence review, earnings and payout request workflows, and a Super Admin workspace.
+
+The public marketplace is intended to show only published placements belonging to verified publishers. Sample preview content must never be represented as verified inventory or real offers.
+
+## Main workflows
+
+### Advertisers
+- Create and manage campaign briefs.
+- Discover and save published placements.
+- Request placements for a campaign.
+- Pay for accepted bookings through the configured payment flow.
+- Review publisher delivery evidence.
+
+### Publishers
+- Submit business and public profile details for verification.
+- Submit placements for moderation.
+- Accept or decline booking requests.
+- Submit HTTPS delivery evidence.
+- View earnings and request eligible payouts.
+
+Publisher earnings are created as pending after successful payment processing. In the Phase 1 branch, earnings are released to available only after the advertiser approves delivery evidence. A payout request is separate from a bank transfer; an administrator must review and reconcile the payout.
+
+### Super Admin
+- Review publisher verification.
+- Approve or reject placements.
+- Manage eligible user account status.
+- Review bookings, payment records, earnings and payout requests.
+- Record administrative actions in audit logs.
+
+## Important limitations
+
+The following must not be treated as complete merely because a dashboard navigation item or design preview exists:
+
+- Messaging and in-app conversations.
+- Full campaign analytics and attribution.
+- Advertiser billing history and subscription management.
+- Premium placement checkout and subscription billing.
+- A complete managed-campaign operator workflow.
+- A full dispute case-management workflow.
+- End-to-end live payment, webhook, delivery approval and bank payout verification.
+
+Some dashboard areas remain under development and should not be presented as working features until their APIs and user flows are implemented and tested.
+
+## Development
 
 Requires Node.js 20+.
 
@@ -34,40 +80,33 @@ Create a production build:
 
 ```bash
 npm run build
-npm run preview
 ```
 
-## Deployment
+Run automated tests:
 
-Import this repository into Vercel. The included `vercel.json` sets the Vite build command and `dist` output directory. A live deployment still needs to be created and verified.
+```bash
+npm test
+```
 
-## Roadmap
+## Environment
 
-1. Marketplace foundation and responsive UI
-2. Database schema, authentication, advertiser and publisher profiles
-3. Real listing submission, moderation and publisher verification
-4. Campaign briefs, shortlist, booking requests and delivery evidence
-5. Payments, platform fees, refunds and payout workflow
-6. Campaign analytics, recommendations and admin operations
+Configure environment variables in the appropriate Vercel environment. Do not commit secrets or paste credentials into issues or chat.
 
-Build in verified increments. Do not present sample inventory as real or mark integrations complete until configured and tested.
+The backend uses `DATABASE_URL` for Neon Postgres. Payment and email integrations require their own provider credentials and verified webhook configuration. Use sandbox credentials in Preview for payment testing; do not change Production payment settings as part of Phase 1.
 
+## Database
 
-CI build verification is configured in `.github/workflows/build.yml`.
+SQL migrations are stored in `database/migrations/`. Review migration order and current database state before applying any migration. Never run destructive schema changes against Production as part of routine UI or application work.
 
+## Vercel function limit
 
-## Production backend foundation
+The application currently targets the Vercel Hobby plan's 12-function limit. The API entry-point test guards the current count. Any new API endpoint must be consolidated into an existing handler or otherwise reviewed against the deployment limit before it is added.
 
-- PostgreSQL schema: `database/migrations/001_initial_schema.sql`
-- Public listings API: `api/listings.js` (only published placements from verified publishers)
-- Runtime dependency: `@neondatabase/serverless`
-- Environment template: `.env.example`
+## Phase 1 safety rules
 
-### Required before live data is available
-
-1. Create or select a dedicated Adlink Neon project and apply the schema migration.
-2. Set the pooled Neon connection string as `DATABASE_URL` in Vercel Production and Preview environments.
-3. Connect an authentication provider and implement server-verified session checks before enabling mutations.
-4. Add payment provider credentials only after webhook signature verification and idempotency handling are implemented.
-
-The API deliberately returns HTTP 503 when `DATABASE_URL` is missing; it never silently substitutes demo data. The current homepage still has a clearly labelled sample-data catalog until the frontend is switched to database-backed listings and auth is connected.
+- Work on `feat/adlink-2.0-phase-1` and keep its pull request in draft.
+- Do not merge without explicit approval.
+- Do not modify Production payment configuration.
+- Do not apply destructive database changes.
+- Do not claim a payment, webhook, database migration or payout test passed unless it has been independently verified.
+- Keep the main branch and the separate Bachs sandbox work isolated.
