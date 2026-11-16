@@ -1,8 +1,8 @@
 /* Full-bleed Adlink community hero */
-.hero.hero-community{position:relative;isolation:isolate;overflow:hidden;max-width:none;width:100%;min-height:620px;margin:0;padding:76px max(34px,calc((100vw - 1180px)/2)) 58px;display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);gap:10px;align-items:center;background:linear-gradient(118deg,#123a2a 0%,#174a34 52%,#1e573b 100%);color:#f7f9f3;border-radius:0}
+.hero.hero-community{position:relative;isolation:isolate;overflow:hidden;max-width:none;width:100%;min-height:620px;margin:0;padding:76px max(34px,calc((100vw - 1180px)/2)) 58px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:center;background:linear-gradient(118deg,#123a2a 0%,#174a34 52%,#1e573b 100%);color:#f7f9f3;border-radius:0}
 .hero-community:before{content:"";position:absolute;z-index:-1;width:720px;height:720px;right:-190px;top:-330px;border:1px solid #b7e66a22;border-radius:50%;box-shadow:0 0 0 55px #ffffff05,0 0 0 110px #ffffff03}
 .hero-community:after{content:"";position:absolute;z-index:-1;width:580px;height:580px;left:-350px;bottom:-390px;border:1px solid #b7e66a22;border-radius:50%;box-shadow:0 0 0 48px #ffffff04}
-.hero-community .hero-copy{position:relative;z-index:3;max-width:610px;padding:0}
+.hero-community .hero-copy{position:relative;z-index:3;max-width:760px;padding:0}
 .hero-community .eyebrow{color:#c5d7c5}.hero-community .eyebrow-line{background:#b7e66a}
 .hero-community h1{color:#f7f9f3;font-size:clamp(54px,6.2vw,82px);line-height:1.01;margin:25px 0 19px;letter-spacing:-.078em}
 .hero-community h1 em{color:#b7e66a}.hero-community .hero-sub{max-width:485px;color:#d0dfd1;font-size:14px;line-height:1.85}
@@ -23,19 +23,13 @@
 @media(min-width:1400px){.hero.hero-community{min-height:690px}.hero-community-art{height:550px}}
 @media(max-width:1000px) and (min-width:681px){.hero.hero-community{padding:64px 30px 50px;grid-template-columns:.92fr 1.08fr;min-height:570px}.hero-community h1{font-size:clamp(50px,6.4vw,68px)}.hero-community-art{height:410px}.hero-community-image{width:126%;right:-13%}.hero-community .hero-cta{gap:8px}.hero-community .btn-large{padding:13px 14px;font-size:10px}}
 @media(max-width:680px){
- .hero.hero-community{display:block;position:relative;min-height:790px;padding:47px 20px 285px;overflow:hidden}
+ .hero.hero-community{display:block;position:relative;min-height:0;padding:47px 20px 52px;overflow:hidden}
  .hero-community .hero-copy{max-width:none;position:relative;z-index:3}.hero-community .eyebrow{font-size:8px;letter-spacing:.12em}
  .hero-community h1{font-size:clamp(48px,13.4vw,62px);line-height:1.02;margin:20px 0 17px;letter-spacing:-.08em}
  .hero-community .hero-sub{font-size:13px;line-height:1.8;max-width:390px}
  .hero-community .hero-cta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:23px}
  .hero-community .btn-large{display:flex;align-items:center;justify-content:center;min-height:67px;padding:11px 8px;text-align:center;white-space:normal;font-size:11px;line-height:1.35;border-radius:9px}
  .hero-community .hero-proof-community{margin-top:23px;gap:9px}.hero-proof-community .hero-proof-star{width:29px;height:29px;flex-basis:29px;font-size:15px}.hero-proof-community strong{font-size:10px}.hero-proof-community small{font-size:9px}
- .hero-community-art{position:absolute;z-index:1;left:0;right:0;bottom:0;width:100%;height:52%;margin:0;overflow:hidden;pointer-events:none}
- .hero-community-art:before{width:100%;right:0;bottom:-12%;background:radial-gradient(ellipse at 50% 72%,#b7e66a24 0%,#b7e66a08 58%,transparent 78%)}
- .hero-community-image{width:112%;height:112%;max-width:none;max-height:none;right:-6%;bottom:-3%;object-fit:contain;object-position:center bottom}
- .community-glow{height:54%;background:linear-gradient(180deg,#174a34 0%,#174a34a8 34%,transparent 100%)}
- .community-orbit-one{width:84%;right:8%;bottom:-6%}.community-orbit-two{width:64%;right:18%;bottom:6%}
- .community-floating-note{right:5%;top:5%;font-size:8px;padding:8px 10px}
 }
-@media(max-width:390px){.hero.hero-community{padding-left:16px;padding-right:16px;min-height:760px;padding-bottom:265px}.hero-community .hero-cta{gap:6px}.hero-community .btn-large{font-size:10px;padding:9px 5px;min-height:64px}.hero-community-art{height:50%}}
+@media(max-width:390px){.hero.hero-community{padding-left:16px;padding-right:16px}.hero-community .hero-cta{gap:6px}.hero-community .btn-large{font-size:10px;padding:9px 5px;min-height:64px}}
 @media(prefers-reduced-motion:reduce){.hero-community *{scroll-behavior:auto}}
