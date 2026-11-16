@@ -7,7 +7,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export function parseBachsAmountMinor(value) {
   const amount = String(value ?? '');
-  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(amount)) return null;
+  if (!/^\d+(?:\.\d{1,2})?$/.test(amount)) return null;
   const [whole, fraction = ''] = amount.split('.');
   const minor = BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
   return minor <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(minor) : null;
