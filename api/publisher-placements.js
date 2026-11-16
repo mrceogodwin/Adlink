@@ -10,7 +10,14 @@ async function handler(request) {
   const sql = db();
   if (request.method === 'GET') {
     try {
-      const verification = await sql`SELECT business_name, profile_image_url, verification_status, verification_platform, verification_handle, verification_url, verification_note, verification_submitted_at, verification_review_note, verification_reviewed_at FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1`;
+      let verification;
+      try {
+        verification = await sql`SELECT business_name, profile_image_url, verification_status, verification_platform, verification_handle, verification_url, verification_note, verification_submitted_at, verification_review_note, verification_reviewed_at FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1`;
+      } catch (columnError) {
+        // Keep publisher workspaces usable if migration 016 has not yet been applied.
+        if (!/profile_image_url|column .* does not exist/i.test(String(columnError?.message || ''))) throw columnError;
+        verification = await sql`SELECT business_name, verification_status, verification_platform, verification_handle, verification_url, verification_note, verification_submitted_at, verification_review_note, verification_reviewed_at, NULL::text AS profile_image_url FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1`;
+      }
       const rows = await sql`SELECT id, title, platform, category, handle, description, audience_size, estimated_reach, engagement_rate, price_minor, currency, deliverable, turnaround_days, status, created_at, updated_at FROM placements WHERE publisher_id=(SELECT id FROM publisher_profiles WHERE profile_id=${auth.profile.id} LIMIT 1) ORDER BY created_at DESC LIMIT 100`;
       return json({ data: rows, verification: verification[0] || null });
     } catch (error) {
