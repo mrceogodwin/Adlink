@@ -28,6 +28,20 @@ async function handler(request) {
     const action = String(body.action || '');
     const bookingId = String(body.booking_id || '');
 
+    if (action === 'cancel' && auth.profile.role === 'advertiser') {
+      if (!UUID.test(bookingId)) return json({ error: 'Choose a valid booking.' }, 400);
+      const cancelled = await sql`UPDATE bookings
+        SET status='cancelled', updated_at=now()
+        WHERE id=${bookingId}
+          AND advertiser_id=${auth.profile.id}
+          AND status='requested'
+        RETURNING id,status`;
+      if (!cancelled.length) return json({ error: 'Only booking requests that are still awaiting publisher response can be cancelled.' }, 409);
+      await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details)
+        VALUES (${auth.profile.id},'booking_cancelled','booking',${bookingId},${JSON.stringify({ status: 'cancelled', reason: 'advertiser_cancelled_before_acceptance' })}::jsonb)`;
+      return json({ booking: cancelled[0] });
+    }
+
     if (action === 'submit_evidence' && auth.profile.role === 'publisher') {
       if (!UUID.test(bookingId)) return json({ error: 'Choose a valid booking.' }, 400);
       const evidenceUrl = String(body.evidence_url || '').trim();
@@ -84,11 +98,21 @@ async function handler(request) {
           updated_at=now()
         FROM evidence_update e WHERE b.id=e.booking_id
         RETURNING b.id,b.status,b.completed_at
+      ), earnings_release AS (
+        -- Earnings become withdrawable only after the advertiser approves delivery.
+        UPDATE publisher_earnings pe
+        SET status='available', available_at=now(), updated_at=now()
+        FROM booking_update b
+        WHERE pe.booking_id=b.id
+          AND b.status='completed'
+          AND pe.status='pending'
+        RETURNING pe.id
       )
-      SELECT evidence_update.*,booking_update.status AS booking_status,booking_update.completed_at
+      SELECT evidence_update.*,booking_update.status AS booking_status,booking_update.completed_at,
+        (SELECT count(*)::int FROM earnings_release) AS earnings_released
       FROM evidence_update JOIN booking_update ON booking_update.id=evidence_update.booking_id`;
       if (!reviewed.length) return json({ error: 'No delivery submission is awaiting your review for this booking.' }, 409);
-      await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},${decision === 'approve' ? 'delivery_approved' : 'delivery_rejected'},'booking',${bookingId},${JSON.stringify({ evidence_id: reviewed[0].id, review_note: reviewNote })}::jsonb)`;
+      await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details) VALUES (${auth.profile.id},${decision === 'approve' ? 'delivery_approved' : 'delivery_rejected'},'booking',${bookingId},${JSON.stringify({ evidence_id: reviewed[0].id, review_note: reviewNote, earnings_released: reviewed[0].earnings_released || 0 })}::jsonb)`;
       return json({ review: reviewed[0] });
     }
 
@@ -109,7 +133,22 @@ async function handler(request) {
     const available = await sql`SELECT p.id,p.publisher_id,p.title,p.deliverable,p.price_minor FROM placements p JOIN publisher_profiles pp ON pp.id=p.publisher_id WHERE p.id=${placementId} AND p.status='published' AND pp.verification_status='verified' LIMIT 1`;
     if (!available.length) return json({ error: 'This placement is no longer available.' }, 404);
     const p = available[0];
-    const rows = await sql`INSERT INTO bookings (campaign_id,placement_id,advertiser_id,publisher_id,deliverable,amount_minor,currency,status) SELECT ${campaignId},${p.id},${auth.profile.id},${p.publisher_id},${p.deliverable},${p.price_minor},'NGN','requested' WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE campaign_id=${campaignId} AND placement_id=${p.id} AND advertiser_id=${auth.profile.id} AND status NOT IN ('cancelled','declined')) RETURNING id, campaign_id, placement_id, amount_minor, currency, status, created_at`;
+    const rows = await sql`WITH booking_lock AS MATERIALIZED (
+      -- Serialize concurrent requests for the same advertiser/campaign/placement tuple.
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(${campaignId} || ':' || ${p.id} || ':' || ${auth.profile.id}, 0)
+      ) AS acquired
+    )
+    INSERT INTO bookings (campaign_id,placement_id,advertiser_id,publisher_id,deliverable,amount_minor,currency,status)
+    SELECT ${campaignId},${p.id},${auth.profile.id},${p.publisher_id},${p.deliverable},${p.price_minor},'NGN','requested'
+    FROM booking_lock
+    WHERE NOT EXISTS (
+      SELECT 1 FROM bookings
+      WHERE campaign_id=${campaignId} AND placement_id=${p.id}
+        AND advertiser_id=${auth.profile.id}
+        AND status NOT IN ('cancelled','declined')
+    )
+    RETURNING id, campaign_id, placement_id, amount_minor, currency, status, created_at`;
     if (!rows.length) return json({ error: 'You already have an active booking request for this placement and campaign.' }, 409);
     return json({ booking: rows[0] }, 201);
   } catch (error) {

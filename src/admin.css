@@ -108,3 +108,22 @@
  .admin-shell .admin-welcome p{font-size:13px;line-height:1.55}
 }
 @media(max-width:360px){.admin-shell .admin-stat-grid{grid-template-columns:1fr}}
+
+
+/* Adlink 2.0 owner control room visual consistency */
+.admin-shell{background:#f3f6f1}
+.admin-shell .dash-sidebar{box-shadow:5px 0 24px #19351a05}
+.admin-shell .admin-private-badge{border:1px solid #e1e9d9;background:linear-gradient(135deg,#f8fbf5,#edf5e7);border-radius:11px}
+.admin-shell .admin-queue-card,.admin-shell .admin-data-panel,.admin-shell .admin-users-panel,.admin-shell .admin-checklist-panel{border-radius:13px;box-shadow:0 5px 20px #1d32120a}
+.admin-shell .admin-review-row{transition:background .15s ease}
+.admin-shell .admin-review-row:hover{background:#fbfcf9}
+.admin-shell .admin-review-actions button,.admin-shell .admin-managed-controls select{min-height:38px;border-radius:8px}
+.admin-shell button{cursor:pointer}
+.admin-shell button:disabled{cursor:not-allowed;opacity:.55}
+.admin-shell .admin-env-chip{border:1px solid #dfe9d7;border-radius:8px;background:#f8fbf5}
+@media(max-width:680px){
+ .admin-shell .admin-private-badge{border-radius:10px}
+ .admin-shell .admin-review-row{border-bottom:1px solid #edf0e9}
+ .admin-shell .admin-managed-controls{display:grid;grid-template-columns:1fr;gap:8px;width:100%}
+ .admin-shell .admin-managed-controls select{width:100%;min-height:44px;font-size:16px}
+}

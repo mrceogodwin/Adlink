@@ -13,10 +13,10 @@ async function handler(request) {
 
   try {
     const body = await request.json();
-    const entity = ['publisher','placement','user','payout'].includes(body.entity) ? body.entity : '';
-    const action = ['approve','reject','suspend','reactivate','mark_paid'].includes(body.action) ? body.action : '';
+    const entity = ['publisher','placement','user','payout','campaign'].includes(body.entity) ? body.entity : '';
+    const action = ['approve','reject','suspend','reactivate','mark_paid','assign','update_progress'].includes(body.action) ? body.action : '';
     const id = String(body.id || '');
-    const validAction = entity === 'publisher' || entity === 'placement' ? ['approve','reject'].includes(action) : entity === 'user' ? ['suspend','reactivate'].includes(action) : entity === 'payout' ? ['approve','reject','mark_paid'].includes(action) : false;
+    const validAction = entity === 'publisher' || entity === 'placement' ? ['approve','reject'].includes(action) : entity === 'campaign' ? ['approve','reject','assign','update_progress'].includes(action) : entity === 'user' ? ['suspend','reactivate'].includes(action) : entity === 'payout' ? ['approve','reject','mark_paid'].includes(action) : false;
     if (!entity || !validAction || !UUID.test(id)) return json({ error: 'Choose a valid review action and record.' }, 400);
     if (entity === 'user' && id === auth.profile.id) return json({ error: 'You cannot change your own account status from this screen.' }, 400);
 
@@ -31,6 +31,21 @@ async function handler(request) {
       rows = action === 'approve'
         ? await sql`UPDATE placements p SET status='published', verified_at=now(), updated_at=now() FROM publisher_profiles pp WHERE p.id=${id} AND p.publisher_id=pp.id AND pp.verification_status='verified' AND p.status='pending_review' RETURNING p.id, p.title, p.status`
         : await sql`UPDATE placements SET status='rejected', updated_at=now() WHERE id=${id} AND status='pending_review' RETURNING id, title, status`;
+    } else if (entity === 'campaign') {
+      if (action === 'approve' || action === 'reject') {
+        const reviewNote = String(body.review_note || '').trim().slice(0,2000);
+        rows = await sql`UPDATE campaigns SET managed_review_status=${action === 'approve' ? 'accepted' : 'rejected'}, managed_review_note=${reviewNote}, managed_reviewed_by=${auth.profile.id}, managed_reviewed_at=now(), updated_at=now() WHERE id=${id} AND campaign_mode='managed' AND managed_review_status='pending' RETURNING id, name, campaign_mode, managed_review_status, managed_review_note`;
+      } else if (action === 'assign') {
+        const assigneeId = String(body.assignee_id || '');
+        if (!UUID.test(assigneeId)) return json({ error: 'Choose a valid campaign manager.' }, 400);
+        rows = await sql`UPDATE campaigns c SET managed_assigned_to=p.id, updated_at=now() FROM profiles p WHERE c.id=${id} AND c.campaign_mode='managed' AND c.managed_review_status='accepted' AND p.id=${assigneeId} AND p.role IN ('admin','super_admin') AND p.status='active' RETURNING c.id,c.name,c.managed_assigned_to,c.managed_progress_status`;
+      } else {
+        const progress = String(body.progress_status || '');
+        const allowed = ['not_started','planning','in_progress','awaiting_advertiser','completed'];
+        if (!allowed.includes(progress)) return json({ error: 'Choose a valid campaign progress status.' }, 400);
+        const note = String(body.progress_note || '').trim().slice(0,2000);
+        rows = await sql`UPDATE campaigns SET managed_progress_status=${progress}, managed_progress_note=${note}, updated_at=now() WHERE id=${id} AND campaign_mode='managed' AND managed_review_status='accepted' RETURNING id,name,managed_progress_status,managed_progress_note,managed_assigned_to`;
+      }
     } else if (entity === 'user') {
       rows = action === 'suspend'
         ? await sql`UPDATE profiles SET status='suspended', updated_at=now() WHERE id=${id} AND status='active' AND role <> 'super_admin' RETURNING id, email, role, status`

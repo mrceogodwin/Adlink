@@ -1,15 +1,7 @@
-import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { verifyPaystackSignature, normalizeCommissionBps } from '../lib/payment-utils.js';
 import { vercelHandler } from '../lib/vercel-handler.js';
 import { db, json, requireSession, checkSameOrigin } from '../lib/auth.js';
-
-function validSignature(rawBody, signature, secret) {
-  if (!signature || !secret) return false;
-  const expected = createHmac('sha512', secret).update(rawBody).digest('hex');
-  const a = Buffer.from(expected, 'hex');
-  let b;
-  try { b = Buffer.from(signature, 'hex'); } catch { return false; }
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 async function handler(request) {
   const url = new URL(request.url);
@@ -18,7 +10,7 @@ async function handler(request) {
     const secret = process.env.PAYSTACK_SECRET_KEY;
     if (!secret) return json({ error: 'Payment webhook is not configured.' }, 503);
     const raw = await request.text();
-    if (!validSignature(raw, request.headers.get('x-paystack-signature'), secret)) {
+    if (!verifyPaystackSignature(raw, request.headers.get('x-paystack-signature'), secret)) {
       return json({ error: 'Invalid payment signature.' }, 401);
     }
     try {
@@ -38,13 +30,7 @@ async function handler(request) {
         return json({ error: 'Payment amount or currency mismatch.' }, 400);
       }
       const commissionSettings = await sql`SELECT setting_value FROM platform_settings WHERE setting_key='platform_commission_bps' LIMIT 1`;
-      const rawCommission = commissionSettings[0]?.setting_value;
-      const configuredCommission = rawCommission && typeof rawCommission === 'object'
-        ? Number(rawCommission.bps ?? rawCommission.value ?? rawCommission.rate_bps)
-        : Number(rawCommission);
-      const commissionBps = Number.isFinite(configuredCommission)
-        ? Math.min(10000, Math.max(0, Math.round(configuredCommission)))
-        : 1500;
+      const commissionBps = normalizeCommissionBps(commissionSettings[0]?.setting_value);
       // Process the successful event, booking transition, and earnings insertion in
       // one database statement. A retried webhook can also repair an earlier partial
       // success because already-successful events are reprocessed idempotently.
