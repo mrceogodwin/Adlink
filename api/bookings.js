@@ -38,7 +38,7 @@ async function handler(request) {
         RETURNING id,status`;
       if (!cancelled.length) return json({ error: 'Only booking requests that are still awaiting publisher response can be cancelled.' }, 409);
       await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details)
-        VALUES (${auth.profile.id},'booking_cancelled','booking',${bookingId},'${JSON.stringify({ status: 'cancelled', reason: 'advertiser_cancelled_before_acceptance' })}'::jsonb)`;
+        VALUES (${auth.profile.id},'booking_cancelled','booking',${bookingId},${JSON.stringify({ status: 'cancelled', reason: 'advertiser_cancelled_before_acceptance' })}::jsonb)`;
       return json({ booking: cancelled[0] });
     }
 
