@@ -119,7 +119,22 @@ async function handler(request) {
     const available = await sql`SELECT p.id,p.publisher_id,p.title,p.deliverable,p.price_minor FROM placements p JOIN publisher_profiles pp ON pp.id=p.publisher_id WHERE p.id=${placementId} AND p.status='published' AND pp.verification_status='verified' LIMIT 1`;
     if (!available.length) return json({ error: 'This placement is no longer available.' }, 404);
     const p = available[0];
-    const rows = await sql`INSERT INTO bookings (campaign_id,placement_id,advertiser_id,publisher_id,deliverable,amount_minor,currency,status) SELECT ${campaignId},${p.id},${auth.profile.id},${p.publisher_id},${p.deliverable},${p.price_minor},'NGN','requested' WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE campaign_id=${campaignId} AND placement_id=${p.id} AND advertiser_id=${auth.profile.id} AND status NOT IN ('cancelled','declined')) RETURNING id, campaign_id, placement_id, amount_minor, currency, status, created_at`;
+    const rows = await sql`WITH booking_lock AS MATERIALIZED (
+      -- Serialize concurrent requests for the same advertiser/campaign/placement tuple.
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(${campaignId} || ':' || ${p.id} || ':' || ${auth.profile.id}, 0)
+      ) AS acquired
+    )
+    INSERT INTO bookings (campaign_id,placement_id,advertiser_id,publisher_id,deliverable,amount_minor,currency,status)
+    SELECT ${campaignId},${p.id},${auth.profile.id},${p.publisher_id},${p.deliverable},${p.price_minor},'NGN','requested'
+    FROM booking_lock
+    WHERE NOT EXISTS (
+      SELECT 1 FROM bookings
+      WHERE campaign_id=${campaignId} AND placement_id=${p.id}
+        AND advertiser_id=${auth.profile.id}
+        AND status NOT IN ('cancelled','declined')
+    )
+    RETURNING id, campaign_id, placement_id, amount_minor, currency, status, created_at`;
     if (!rows.length) return json({ error: 'You already have an active booking request for this placement and campaign.' }, 409);
     return json({ booking: rows[0] }, 201);
   } catch (error) {
