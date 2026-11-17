@@ -28,6 +28,20 @@ async function handler(request) {
     const action = String(body.action || '');
     const bookingId = String(body.booking_id || '');
 
+    if (action === 'cancel' && auth.profile.role === 'advertiser') {
+      if (!UUID.test(bookingId)) return json({ error: 'Choose a valid booking.' }, 400);
+      const cancelled = await sql`UPDATE bookings
+        SET status='cancelled', updated_at=now()
+        WHERE id=${bookingId}
+          AND advertiser_id=${auth.profile.id}
+          AND status='requested'
+        RETURNING id,status`;
+      if (!cancelled.length) return json({ error: 'Only booking requests that are still awaiting publisher response can be cancelled.' }, 409);
+      await sql`INSERT INTO audit_logs(actor_profile_id,action,entity_type,entity_id,details)
+        VALUES (${auth.profile.id},'booking_cancelled','booking',${bookingId},'${JSON.stringify({ status: 'cancelled', reason: 'advertiser_cancelled_before_acceptance' })}'::jsonb)`;
+      return json({ booking: cancelled[0] });
+    }
+
     if (action === 'submit_evidence' && auth.profile.role === 'publisher') {
       if (!UUID.test(bookingId)) return json({ error: 'Choose a valid booking.' }, 400);
       const evidenceUrl = String(body.evidence_url || '').trim();
